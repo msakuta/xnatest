@@ -26,8 +26,39 @@ namespace xnatest
         VertexPositionNormalTexture[] cubeVertices;
         VertexDeclaration vertexDeclaration;
         BasicEffect basicEffect;
- 
 
+        const int CELLSIZE = 64;
+
+
+        struct Cell
+        {
+            public enum Type { Air, Grass };
+            public Cell(Type t) { mtype = t; }
+            private Type mtype;
+            public Type type { get { return mtype; } }
+        }
+
+        class CellVolue
+        {
+            Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
+            public Cell cell(int ix, int iy, int iz)
+            {
+                return v[ix, iy, iz];
+            }
+            public void initialize()
+            {
+		        float[,] field = new float[CELLSIZE, CELLSIZE];
+		        PerlinNoise.perlin_noise(12321, new PerlinNoise.FieldAssign(field), CELLSIZE);
+		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
+			        v[ix, iy, iz] = new Cell(field[ix, iz] * 8 < iy ? Cell.Type.Air : Cell.Type.Grass);
+		        }
+/*		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
+			        updateAdj(ix, iy, iz);
+		        }*/
+            }
+        }
+
+        CellVolue massvolume = new CellVolue();
 
 
         public Game1()
@@ -55,6 +86,8 @@ namespace xnatest
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
+            massvolume.initialize();
+
             float tilt = MathHelper.ToRadians(0);  // 0 degree angle
             // Use the world matrix to tilt the cube along x and y axes.
             worldMatrix = Matrix.CreateRotationX(tilt) * Matrix.CreateRotationY(tilt);
@@ -64,7 +97,7 @@ namespace xnatest
                 MathHelper.ToRadians(45),  // 45 degree angle
                 (float)GraphicsDevice.Viewport.Width /
                 (float)GraphicsDevice.Viewport.Height,
-                1.0f, 100.0f);
+                1.0f, 200.0f);
 
             basicEffect = new BasicEffect(graphics.GraphicsDevice);
 
@@ -249,24 +282,36 @@ namespace xnatest
             spriteBatch.Draw(myTexture, spritePosition, Color.White);
             spriteBatch.End();*/
 
-            double phase = gameTime.TotalGameTime.TotalMilliseconds / 300.0;
-            basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(5.0 * Math.Cos(phase)), (float)(5.0 * Math.Sin(phase / 10.0)), (float)(5.0 * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
+            const double dist = 64.0;
+            double phase = gameTime.TotalGameTime.TotalMilliseconds / 1000.0;
+            basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(dist * Math.Cos(phase)), (float)(dist * (Math.Sin(phase / 10.0) + 1.0) / 2.0), (float)(dist * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
+
+            if (basicEffect.DirectionalLight0.Enabled)
+            {
+                basicEffect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3((float)Math.Cos(gameTime.TotalGameTime.TotalMilliseconds / 1000.0), 0, (float)Math.Sin(gameTime.TotalGameTime.TotalMilliseconds / 1000.0)));
+                // points from the light to the origin of the scene
+                basicEffect.DirectionalLight0.SpecularColor = Vector3.One;
+            }
 
             graphics.GraphicsDevice.Clear(Color.SteelBlue);
 
             RasterizerState rasterizerState1 = new RasterizerState();
             rasterizerState1.CullMode = CullMode.CullClockwiseFace;
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
-            foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
-            {
-                pass.Apply();
+            for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (massvolume.cell(ix, iy, iz).type != Cell.Type.Air)
+                    {
+                        basicEffect.World = Matrix.CreateWorld(new Vector3(ix, iy, iz) - new Vector3(CELLSIZE / 2, CELLSIZE / 2, CELLSIZE / 2), V3(0, 0, 1), Vector3.Up);
+                        foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
+                        {
+                            pass.Apply();
 
-                graphics.GraphicsDevice.DrawPrimitives(
-                    PrimitiveType.TriangleList,
-                    0,
-                    12
-                );
-            }
+                            graphics.GraphicsDevice.DrawPrimitives(
+                                PrimitiveType.TriangleList,
+                                0,
+                                12
+                            );
+                        }
+                    }
 
             base.Draw(gameTime);
         }
