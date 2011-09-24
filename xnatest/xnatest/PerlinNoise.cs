@@ -42,7 +42,6 @@ namespace xnatest
             for (octave = 0; (1 << octave) < cellsize; octave += 1)
             {
                 int cell = 1 << octave;
-                int k;
                 if (octave == 0)
                 {
                     for (xi = 0; xi < cellsize; xi++) for (yi = 0; yi < cellsize; yi++)
@@ -52,18 +51,15 @@ namespace xnatest
                         {
                             int xj, yj;
                             double sum = 0;
-                            for (k = 0; k < 1; k++)
-                            {
-                                for (xj = 0; xj <= 1; xj++) for (yj = 0; yj <= 1; yj++)
-                                    {
-                                        sum += (double)work[xi / cell + xj, yi / cell + yj]
-                                            * (xj != 0 ? xi % cell : (cell - xi % cell - 1)) / (double)cell
-                                            * (yj != 0 ? yi % cell : (cell - yi % cell - 1)) / (double)cell;
-                                    }
-                                work2[xi, yi] += (int)sum;
-                                if (maxwork2 < work2[xi, yi])
-                                    maxwork2 = work2[xi, yi];
-                            }
+                            for (xj = 0; xj <= 1; xj++) for (yj = 0; yj <= 1; yj++)
+                                {
+                                    sum += (double)work[xi / cell + xj, yi / cell + yj]
+                                        * (xj != 0 ? xi % cell : (cell - xi % cell - 1)) / (double)cell
+                                        * (yj != 0 ? yi % cell : (cell - yi % cell - 1)) / (double)cell;
+                                }
+                            work2[xi, yi] += (int)sum;
+                            if (maxwork2 < work2[xi, yi])
+                                maxwork2 = work2[xi, yi];
                         }
             }
 

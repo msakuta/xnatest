@@ -27,7 +27,7 @@ namespace xnatest
         VertexDeclaration vertexDeclaration;
         BasicEffect basicEffect;
 
-        const int CELLSIZE = 64;
+        const int CELLSIZE = 16;
 
 
         struct Cell
@@ -65,6 +65,8 @@ namespace xnatest
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+            graphics.PreferredBackBufferWidth = 1200;
+            graphics.PreferredBackBufferHeight = 800;
         }
 
         static Vector2 V2(float x, float y)
@@ -115,12 +117,13 @@ namespace xnatest
             basicEffect.LightingEnabled = true;
             if (basicEffect.LightingEnabled)
             {
+                basicEffect.AmbientLightColor = Vector3.One * 0.25f;
                 basicEffect.DirectionalLight0.Enabled = true; // enable each light individually
                 if (basicEffect.DirectionalLight0.Enabled)
                 {
-                    // x direction
-                    basicEffect.DirectionalLight0.DiffuseColor = new Vector3(1, 0, 0); // range is 0 to 1
-                    basicEffect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, 0, 0));
+                    // sky light
+                    basicEffect.DirectionalLight0.DiffuseColor = new Vector3(0.1f, 0.2f, 0.2f); // range is 0 to 1
+                    basicEffect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
                     // points from the light to the origin of the scene
                     basicEffect.DirectionalLight0.SpecularColor = Vector3.One;
                 }
@@ -128,19 +131,10 @@ namespace xnatest
                 basicEffect.DirectionalLight1.Enabled = true;
                 if (basicEffect.DirectionalLight1.Enabled)
                 {
-                    // y direction
-                    basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0, 0.75f, 0);
-                    basicEffect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
-                    basicEffect.DirectionalLight1.SpecularColor = Vector3.One;
-                }
-
-                basicEffect.DirectionalLight2.Enabled = true;
-                if (basicEffect.DirectionalLight2.Enabled)
-                {
-                    // z direction
-                    basicEffect.DirectionalLight2.DiffuseColor = new Vector3(0, 0, 0.5f);
-                    basicEffect.DirectionalLight2.Direction = Vector3.Normalize(new Vector3(0, 0, -1));
-                    basicEffect.DirectionalLight2.SpecularColor = Vector3.One;
+                    // sun light
+                    basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f);
+                    basicEffect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0.15f, -1, -0.25f));
+                    basicEffect.DirectionalLight1.SpecularColor = Vector3.Zero;
                 }
             }
 
@@ -223,6 +217,9 @@ namespace xnatest
 
             // TODO: use this.Content to load your game content here
             myTexture = Content.Load<Texture2D>("grass");
+
+            basicEffect.TextureEnabled = true;
+            basicEffect.Texture = myTexture;
         }
 
         /// <summary>
@@ -275,26 +272,17 @@ namespace xnatest
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-/*            GraphicsDevice.Clear(Color.CornflowerBlue);
-
-            // TODO: Add your drawing code here
-            spriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
-            spriteBatch.Draw(myTexture, spritePosition, Color.White);
-            spriteBatch.End();*/
-
-            const double dist = 64.0;
+            const double dist = 16.0;
             double phase = gameTime.TotalGameTime.TotalMilliseconds / 1000.0;
             basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(dist * Math.Cos(phase)), (float)(dist * (Math.Sin(phase / 10.0) + 1.0) / 2.0), (float)(dist * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
 
-            if (basicEffect.DirectionalLight0.Enabled)
-            {
-                basicEffect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3((float)Math.Cos(gameTime.TotalGameTime.TotalMilliseconds / 1000.0), 0, (float)Math.Sin(gameTime.TotalGameTime.TotalMilliseconds / 1000.0)));
-                // points from the light to the origin of the scene
-                basicEffect.DirectionalLight0.SpecularColor = Vector3.One;
-            }
-
             graphics.GraphicsDevice.Clear(Color.SteelBlue);
 
+#if false
+            spriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend);
+            spriteBatch.Draw(myTexture, spritePosition, Color.White);
+            spriteBatch.End();
+#else
             RasterizerState rasterizerState1 = new RasterizerState();
             rasterizerState1.CullMode = CullMode.CullClockwiseFace;
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
@@ -312,7 +300,7 @@ namespace xnatest
                             );
                         }
                     }
-
+#endif
             base.Draw(gameTime);
         }
     }
