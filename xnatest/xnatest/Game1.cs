@@ -25,7 +25,6 @@ namespace xnatest
         Matrix projectionMatrix;
         VertexPositionNormalTexture[] cubeVertices;
         VertexDeclaration vertexDeclaration;
-        VertexBuffer vertexBuffer;
         BasicEffect basicEffect;
  
 
@@ -120,9 +119,6 @@ namespace xnatest
                 new VertexElement(24, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0)
             });
 
-//            TT tt = new TT(new Vector3(), new Vector3());
-//            TT2 tt2 = new TT2(tt, tt);
-
             Vector3[, ,] tt3 = new Vector3[2, 2, 2];
 
             for (int ix = 0; ix < 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = 0; iz < 2; iz++)
@@ -130,10 +126,10 @@ namespace xnatest
 
             cubeVertices = new VertexPositionNormalTexture[]{
                 new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
-                new VertexPositionNormalTexture(tt3[1, 0, 0], V3(0, 0, -1), V2(1, 0)),
-                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[0, 1, 0], V3(0, 0, -1), V2(0, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 0, 0], V3(0, 0, -1), V2(1, 0)),
                 new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
 
                 new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, 0, 1), V2(0, 0)),
@@ -148,108 +144,29 @@ namespace xnatest
                 new VertexPositionNormalTexture(tt3[1, 0, 1], V3(0, -1, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[1, 0, 1], V3(0, -1, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, -1, 0), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, -1, 0), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, -1, 0), V2(0, 0)),
 
                 new VertexPositionNormalTexture(tt3[0, 1, 0], V3(0, 1, 0), V2(0, 0)),
-                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 1, 0), V2(1, 0)),
-                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 1, 0), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 1, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[0, 1, 1], V3(0, 1, 0), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(0, 1, 0), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 1, 0), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 1, 0), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 1, 0), V2(1, 0)),
+                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(0, 1, 0), V2(0, 0)),
 
                 new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
-                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(-1, 0, 0), V2(1, 0)),
-                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[0, 0, 1], V3(-1, 0, 0), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(-1, 0, 0), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(-1, 0, 0), V2(1, 0)),
+                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
 
                 new VertexPositionNormalTexture(tt3[1, 0, 0], V3(1, 0, 0), V2(0, 0)),
                 new VertexPositionNormalTexture(tt3[1, 1, 0], V3(1, 0, 0), V2(1, 0)),
                 new VertexPositionNormalTexture(tt3[1, 1, 1], V3(1, 0, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[1, 1, 1], V3(1, 0, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[1, 0, 1], V3(1, 0, 0), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[1, 0, 1], V3(1, 0, 0), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[1, 0, 0], V3(1, 0, 0), V2(0, 0)),
             };
-
-/*            Vector3 topLeftFront = new Vector3(-1.0f, 1.0f, 1.0f);
-            Vector3 bottomLeftFront = new Vector3(-1.0f, -1.0f, 1.0f);
-            Vector3 topRightFront = new Vector3(1.0f, 1.0f, 1.0f);
-            Vector3 bottomRightFront = new Vector3(1.0f, -1.0f, 1.0f);
-            Vector3 topLeftBack = new Vector3(-1.0f, 1.0f, -1.0f);
-            Vector3 topRightBack = new Vector3(1.0f, 1.0f, -1.0f);
-            Vector3 bottomLeftBack = new Vector3(-1.0f, -1.0f, -1.0f);
-            Vector3 bottomRightBack = new Vector3(1.0f, -1.0f, -1.0f);
-
-            Vector2 textureTopLeft = new Vector2(0.0f, 0.0f);
-            Vector2 textureTopRight = new Vector2(1.0f, 0.0f);
-            Vector2 textureBottomLeft = new Vector2(0.0f, 1.0f);
-            Vector2 textureBottomRight = new Vector2(1.0f, 1.0f);
-
-            Vector3 frontNormal = new Vector3(0.0f, 0.0f, 1.0f);
-            Vector3 backNormal = new Vector3(0.0f, 0.0f, -1.0f);
-            Vector3 topNormal = new Vector3(0.0f, 1.0f, 0.0f);
-            Vector3 bottomNormal = new Vector3(0.0f, -1.0f, 0.0f);
-            Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
-            Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
-
-            cubeVertices = new VertexPositionNormalTexture[12];
-
-            // Front face.
-            cubeVertices[0] =
-                new VertexPositionNormalTexture(
-                topLeftFront, frontNormal, textureTopLeft);
-            cubeVertices[1] =
-                new VertexPositionNormalTexture(
-                bottomLeftFront, frontNormal, textureBottomLeft);
-            cubeVertices[2] =
-                new VertexPositionNormalTexture(
-                topRightFront, frontNormal, textureTopRight);
-            cubeVertices[3] =
-                new VertexPositionNormalTexture(
-                bottomLeftFront, frontNormal, textureBottomLeft);
-            cubeVertices[4] =
-                new VertexPositionNormalTexture(
-                bottomRightFront, frontNormal, textureBottomRight);
-            cubeVertices[5] =
-                new VertexPositionNormalTexture(
-                topRightFront, frontNormal, textureTopRight);
-
-            // Front face.
-            cubeVertices[6] =
-                new VertexPositionNormalTexture(
-                topLeftFront, topNormal, textureTopLeft);
-            cubeVertices[7] =
-                new VertexPositionNormalTexture(
-                topRightFront, topNormal, textureBottomLeft);
-            cubeVertices[8] =
-                new VertexPositionNormalTexture(
-                topRightBack, topNormal, textureTopRight);
-            cubeVertices[9] =
-                new VertexPositionNormalTexture(
-                topRightFront, topNormal, textureBottomLeft);
-            cubeVertices[10] =
-                new VertexPositionNormalTexture(
-                topLeftBack, topNormal, textureBottomRight);
-            cubeVertices[11] =
-                new VertexPositionNormalTexture(
-                topLeftFront, topNormal, textureTopRight);*/
-
-            Matrix ma = Matrix.CreateRotationX(MathHelper.Pi);
-
-//            cubeVertices[6].Position = ma * cubeVertices[0].Position;
-
-/*            for (int a = 0; a < 3; a++)
-            {
-                for (int i = -1; i < 2; i++)
-                {
-                    Vector3 p0 = new Vector3(i, 1.0f, 1.0f);
-                    Vector3 p1 = new Vector3(i, 1.0f, -1.0f);
-                    Vector3 p2 = new Vector3(i, -1.0f, -1.0f);
-                    Vector3 p3 = new Vector3(i, -1.0f, 1.0f);
-                    Vector3 pp0 = new Vector3(p0[a], p0[(a + 1) % 3], p0[(a + 2) % 3]);
-                }
-            }*/
 
             VertexBuffer vb = new VertexBuffer(graphics.GraphicsDevice, vertexDeclaration, cubeVertices.Length, BufferUsage.None);
             vb.SetData(cubeVertices);
@@ -332,10 +249,13 @@ namespace xnatest
             spriteBatch.Draw(myTexture, spritePosition, Color.White);
             spriteBatch.End();*/
 
+            double phase = gameTime.TotalGameTime.TotalMilliseconds / 300.0;
+            basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(5.0 * Math.Cos(phase)), (float)(5.0 * Math.Sin(phase / 10.0)), (float)(5.0 * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
+
             graphics.GraphicsDevice.Clear(Color.SteelBlue);
 
             RasterizerState rasterizerState1 = new RasterizerState();
-            rasterizerState1.CullMode = CullMode.None;
+            rasterizerState1.CullMode = CullMode.CullClockwiseFace;
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
             foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
             {
