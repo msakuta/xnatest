@@ -30,6 +30,136 @@ namespace xnatest
         const int CELLSIZE = 16;
 
 
+        partial class Player{
+//            public Player(){}// rot(0,0,0,1), desiredRot(0,0,0,1){py[0] = py[1] = 0.;}
+            World world;
+            public Player(World theworld)
+            {
+                world = theworld;
+            }
+
+            public Vector3 getPos() { return pos; }
+	        public Quaternion getRot(){return rot;}
+	        void setPos(Vector3 apos){pos = apos;}
+	        void setRot(Quaternion arot){rot = arot;}
+	        void updateRot(){
+                desiredRot = Quaternion.CreateFromAxisAngle(Vector3.UnitX, (float)pitch) * Quaternion.CreateFromAxisAngle(Vector3.UnitY, (float)yaw);
+	        }
+	        Vector3 pos = new Vector3(0,10,0);
+	        Vector3 velo;
+	        Quaternion rot;
+	        Quaternion desiredRot;
+	        double pitch = 0; ///< Pitch and Yaw
+            double yaw = 0;
+        };
+
+        Player player;
+
+        partial class Player
+        {
+            public void think(float dt){
+	            velo += new Vector3(0,-9.8f,0) * dt;
+
+#if true
+	            Vec3i ipos = real2ind(pos);
+	            if(world.volume.isSolid(ipos)/* || world.volume.isSolid(ipos - Vec3i(0,1,0))*/){
+		            velo = Vector3.Zero;
+		            pos.Y = (float)(ipos.Y - CELLSIZE / 2 + 2.7);
+	            }
+#endif
+            /*	else if(world.volume.isSolid(ipos + Vec3i(0,1,0))){
+		            player.velo.clear();
+		            player.pos[1] = ipos[1] - CELLSIZE / 2 + 1.7 + 1;
+	            }*/
+
+                KeyboardState ks = Keyboard.GetState();
+                if (ks.IsKeyDown(Keys.NumPad4))
+                    yaw -= dt;
+                if (ks.IsKeyDown(Keys.NumPad6))
+                    yaw += dt;
+                if (ks.IsKeyDown(Keys.NumPad8))
+                    pitch -= dt;
+                if (ks.IsKeyDown(Keys.NumPad2))
+                    pitch += dt;
+                if (ks.IsKeyDown(Keys.W))
+                    trymove(new Vector3(0, 0, -dt));
+                if (ks.IsKeyDown(Keys.S))
+                    trymove(V3(0, 0, dt));
+                if (ks.IsKeyDown(Keys.A))
+                    trymove(V3(-1, 0, 0) * dt);
+                if (ks.IsKeyDown(Keys.D))
+                    trymove(V3(1, 0, 0) * dt);
+                if (ks.IsKeyDown(Keys.Q))
+                    trymove(V3(0, 20 * dt, 0), true);
+                if (ks.IsKeyDown(Keys.Z))
+                    trymove(V3(0, -10 * dt, 0), true);
+
+                updateRot();
+
+	            pos += velo * dt;
+	            rot = Quaternion.Slerp(desiredRot, rot, (float)Math.Exp(-dt * 5.0));
+            }
+
+            public bool trymove(Vector3 delta, bool setvelo = false)
+            {
+	            if(setvelo){
+		            velo += delta;
+		            return true;
+	            }
+	            Vector3 dest = pos + Vector3.Transform(delta, Matrix.CreateFromAxisAngle(Vector3.UnitY, (float)-yaw));
+	            if(!world.volume.isSolid(real2ind(dest + new Vector3(0,0.5f,0)))){
+		            pos = dest;
+		            return true;
+	            }
+	            return false;
+            }
+        }
+
+        struct Vec3i{
+            public int X;
+            public int Y;
+            public int Z;
+
+            public Vec3i(int x, int y, int z)
+            {
+                X = x;
+                Y = y;
+                Z = z;
+            }
+
+            public static Vec3i operator/(Vec3i v, int d)
+            {
+                return new Vec3i(v.X / d, v.Y / d, v.Z / d);
+            }
+
+            public static Vec3i operator +(Vec3i a, Vec3i v)
+            {
+                return new Vec3i(a.X + v.X, a.Y + v.Y, a.Z + v.Z);
+            }
+
+            public static Vec3i operator -(Vec3i a, Vec3i b)
+            {
+                return a + new Vec3i(-b.X, -b.Y, -b.Z);
+            }
+
+            public Vector3 cast()
+            {
+                return new Vector3(X, Y, Z);
+            }
+        }
+
+        /// Convert from real world coords to massvolume index vector
+        static Vec3i real2ind(Vector3 pos){
+	        Vector3 tpos = pos + new Vector3(0,-1.7f,0);
+	        Vec3i vi = new Vec3i((int)Math.Floor(tpos.X), (int)Math.Floor(tpos.Y), (int)Math.Floor(tpos.Z));
+	        return vi + new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2;
+        }
+
+        static Vector3 ind2real(Vec3i ipos){
+	        Vec3i tpos = ipos - new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2;
+	        return tpos.cast() - new Vector3(0,-0.7f,0);
+        }
+
         struct Cell
         {
             public enum Type { Air, Grass };
@@ -38,7 +168,7 @@ namespace xnatest
             public Type type { get { return mtype; } }
         }
 
-        class CellVolue
+        class CellVolume
         {
             Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
             public Cell cell(int ix, int iy, int iz)
@@ -56,9 +186,22 @@ namespace xnatest
 			        updateAdj(ix, iy, iz);
 		        }*/
             }
+
+            public bool isSolid(Vec3i ipos)
+            {
+		        return
+			        0 <= ipos.X && ipos.X < CELLSIZE &&
+			        0 <= ipos.Y && ipos.Y < CELLSIZE &&
+			        0 <= ipos.Z && ipos.Z < CELLSIZE &&
+			        v[ipos.X, ipos.Y, ipos.Z].type != Cell.Type.Air;
+            }
         }
 
-        CellVolue massvolume = new CellVolue();
+        class World{
+            public CellVolume volume = new CellVolume();
+        }
+
+        World world = new World();
 
 
         public Game1()
@@ -88,7 +231,8 @@ namespace xnatest
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            massvolume.initialize();
+            world.volume.initialize();
+            player = new Player(world);
 
             float tilt = MathHelper.ToRadians(0);  // 0 degree angle
             // Use the world matrix to tilt the cube along x and y axes.
@@ -149,7 +293,7 @@ namespace xnatest
             Vector3[, ,] tt3 = new Vector3[2, 2, 2];
 
             for (int ix = 0; ix < 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = 0; iz < 2; iz++)
-                        tt3[ix, iy, iz] = new Vector3(2 * ix - 1, 2 * iy - 1, 2 * iz - 1);
+                        tt3[ix, iy, iz] = new Vector3(ix, iy, iz);
 
             cubeVertices = new VertexPositionNormalTexture[]{
                 new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
@@ -262,6 +406,7 @@ namespace xnatest
                 this.Exit();
 
             // TODO: Add your update logic here
+            player.think((float)gameTime.ElapsedGameTime.TotalSeconds);
 
             base.Update(gameTime);
         }
@@ -272,9 +417,13 @@ namespace xnatest
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
+            /*
             const double dist = 16.0;
             double phase = gameTime.TotalGameTime.TotalMilliseconds / 1000.0;
             basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(dist * Math.Cos(phase)), (float)(dist * (Math.Sin(phase / 10.0) + 1.0) / 2.0), (float)(dist * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
+             */
+
+            basicEffect.View = Matrix.CreateTranslation(-player.getPos()) * Matrix.CreateFromQuaternion(player.getRot());
 
             graphics.GraphicsDevice.Clear(Color.SteelBlue);
 
@@ -286,7 +435,7 @@ namespace xnatest
             RasterizerState rasterizerState1 = new RasterizerState();
             rasterizerState1.CullMode = CullMode.CullClockwiseFace;
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
-            for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (massvolume.cell(ix, iy, iz).type != Cell.Type.Air)
+            for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (world.volume.cell(ix, iy, iz).type != Cell.Type.Air)
                     {
                         basicEffect.World = Matrix.CreateWorld(new Vector3(ix, iy, iz) - new Vector3(CELLSIZE / 2, CELLSIZE / 2, CELLSIZE / 2), V3(0, 0, 1), Vector3.Up);
                         foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
