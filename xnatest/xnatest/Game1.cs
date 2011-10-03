@@ -44,7 +44,7 @@ namespace xnatest
         public static Vector3 ind2real(Vec3i ipos)
         {
 	        Vec3i tpos = ipos - new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2;
-	        return tpos.cast() - new Vector3(0,-0.7f,0);
+	        return tpos.cast() - new Vector3(0,-1.7f,0);
         }
 
         public struct Cell
@@ -310,7 +310,10 @@ namespace xnatest
             basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(dist * Math.Cos(phase)), (float)(dist * (Math.Sin(phase / 10.0) + 1.0) / 2.0), (float)(dist * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
              */
 
-            basicEffect.View = Matrix.CreateTranslation(-player.getPos()) * Matrix.CreateFromQuaternion(player.getRot());
+            // Obtaininig a conjugate requires a local varable declared, which is silly.
+            Quaternion qrot = player.getRot();
+            qrot.Conjugate();
+            basicEffect.View = Matrix.CreateTranslation(-player.getPos()) * Matrix.CreateFromQuaternion(qrot);
 
             graphics.GraphicsDevice.Clear(Color.SteelBlue);
 
@@ -324,7 +327,8 @@ namespace xnatest
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
             for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (world.volume.cell(ix, iy, iz).type != Cell.Type.Air)
                     {
-                        basicEffect.World = Matrix.CreateWorld(new Vector3(ix, iy, iz) - new Vector3(CELLSIZE / 2, CELLSIZE / 2, CELLSIZE / 2), V3(0, 0, 1), Vector3.Up);
+                        // It's very unreasonable, but adding one to ix and iy seems to fix the problem #4.
+                        basicEffect.World = Matrix.CreateWorld(new Vector3(ix - CELLSIZE / 2 + 1, iy - CELLSIZE / 2, iz - CELLSIZE / 2 + 1), V3(0, 0, 1), Vector3.Up);
                         foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
                         {
                             pass.Apply();

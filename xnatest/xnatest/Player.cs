@@ -23,7 +23,9 @@ namespace xnatest
 	    void setPos(Vector3 apos){pos = apos;}
 	    void setRot(Quaternion arot){rot = arot;}
 	    void updateRot(){
-            desiredRot = Quaternion.CreateFromAxisAngle(Vector3.UnitX, (float)pitch) * Quaternion.CreateFromAxisAngle(Vector3.UnitY, (float)yaw);
+            desiredRot =
+                Quaternion.CreateFromAxisAngle(Vector3.UnitY, (float)yaw) *
+                Quaternion.CreateFromAxisAngle(Vector3.UnitX, (float)pitch);
 	    }
 	    Vector3 pos = new Vector3(0,10,0);
 	    Vector3 velo;
@@ -48,13 +50,13 @@ namespace xnatest
 
             KeyboardState ks = Keyboard.GetState();
             if (ks.IsKeyDown(Keys.NumPad4))
-                yaw -= dt;
-            if (ks.IsKeyDown(Keys.NumPad6))
                 yaw += dt;
+            if (ks.IsKeyDown(Keys.NumPad6))
+                yaw -= dt;
             if (ks.IsKeyDown(Keys.NumPad8))
-                pitch -= dt;
-            if (ks.IsKeyDown(Keys.NumPad2))
                 pitch += dt;
+            if (ks.IsKeyDown(Keys.NumPad2))
+                pitch -= dt;
             if (ks.IsKeyDown(Keys.W))
                 trymove(new Vector3(0, 0, -dt));
             if (ks.IsKeyDown(Keys.S))
@@ -80,7 +82,7 @@ namespace xnatest
 		        velo += delta;
 		        return true;
 	        }
-	        Vector3 dest = pos + Vector3.Transform(delta, Matrix.CreateFromAxisAngle(Vector3.UnitY, (float)-yaw));
+	        Vector3 dest = pos + Vector3.Transform(delta, Matrix.CreateFromAxisAngle(Vector3.UnitY, (float)yaw));
 	        if(!world.volume.isSolid(Game1.real2ind(dest + new Vector3(0,0.5f,0)))){
 		        pos = dest;
 		        return true;
