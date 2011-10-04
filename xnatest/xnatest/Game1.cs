@@ -65,7 +65,7 @@ namespace xnatest
             public void initialize()
             {
 		        float[,] field = new float[CELLSIZE, CELLSIZE];
-		        PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams(){ seed = 12321, cellsize = CELLSIZE, persistence = 0.5}, new PerlinNoise.FieldAssign(field));
+		        PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams(){ seed = 12321, cellsize = CELLSIZE}, new PerlinNoise.FieldAssign(field));
 		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
                     v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE / 2 < iy ? Cell.Type.Air : Cell.Type.Grass);
 		        }

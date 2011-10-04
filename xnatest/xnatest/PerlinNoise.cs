@@ -32,12 +32,12 @@ namespace xnatest
         /// <summary>
         /// Parameters given to perlin_noise
         /// </summary>
-        public struct PerlinNoiseParams
+        public class PerlinNoiseParams
         {
-            public long seed; /// Random seed
-            public long cellsize; /// Size of the one edge of the square area.
-            public double persistence; /// Persistence of the argument.
-            public int xofs, yofs; /// Offsets for each axes.
+            public long seed = 0; /// Random seed
+            public long cellsize = 16; /// Size of the one edge of the square area.
+            public double persistence = 0.5; /// Persistence of the argument.
+            public int xofs = 0, yofs = 0; /// Offsets for each axes.
         }
 
         public static void perlin_noise(long seed, PerlinNoiseCallback callback, long cellsize, int xofs = 0, int yofs = 0)
