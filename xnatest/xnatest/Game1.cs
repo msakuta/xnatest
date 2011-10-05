@@ -50,18 +50,21 @@ namespace xnatest
         public struct Cell
         {
             public enum Type { Air, Grass };
-            public Cell(Type t) { mtype = t; }
+            public Cell(Type t) { mtype = t; adjacents = 0; }
             private Type mtype;
             public Type type { get { return mtype; } }
+            public int adjacents;
         }
 
         public class CellVolume
         {
             Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
+
             public Cell cell(int ix, int iy, int iz)
             {
                 return v[ix, iy, iz];
             }
+
             public void initialize()
             {
 		        float[,] field = new float[CELLSIZE, CELLSIZE];
@@ -69,9 +72,20 @@ namespace xnatest
 		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
                     v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE / 2 < iy ? Cell.Type.Air : Cell.Type.Grass);
 		        }
-/*		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
+		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
 			        updateAdj(ix, iy, iz);
-		        }*/
+		        }
+            }
+
+            void updateAdj(int ix, int iy, int iz)
+            {
+                v[ix, iy, iz].adjacents =
+                    (0 < ix && v[ix-1, iy, iz].type != Cell.Type.Air ? 1 : 0) +
+			        (ix < CELLSIZE-1 && v[ix+1, iy, iz].type != Cell.Type.Air ? 1 : 0) +
+			        (0 < iy && v[ix, iy-1, iz].type != Cell.Type.Air ? 1 : 0) +
+			        (iy < CELLSIZE-1 && v[ix, iy+1, iz].type != Cell.Type.Air ? 1 : 0) +
+			        (0 < iz && v[ix, iy, iz-1].type != Cell.Type.Air ? 1 : 0) +
+			        (iz < CELLSIZE-1 && v[ix, iy, iz+1].type != Cell.Type.Air ? 1 : 0);
             }
 
             public bool isSolid(Vec3i ipos)
@@ -183,20 +197,6 @@ namespace xnatest
                         tt3[ix, iy, iz] = new Vector3(ix, iy, iz);
 
             cubeVertices = new VertexPositionNormalTexture[]{
-                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
-                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(0, 0, -1), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[1, 0, 0], V3(0, 0, -1), V2(1, 0)),
-                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
-
-                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, 0, 1), V2(0, 0)),
-                new VertexPositionNormalTexture(tt3[1, 0, 1], V3(0, 0, 1), V2(1, 0)),
-                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 0, 1), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 0, 1), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(0, 0, 1), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, 0, 1), V2(0, 0)),
-
                 new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, -1, 0), V2(0, 0)),
                 new VertexPositionNormalTexture(tt3[1, 0, 0], V3(0, -1, 0), V2(1, 0)),
                 new VertexPositionNormalTexture(tt3[1, 0, 1], V3(0, -1, 0), V2(1, 1)),
@@ -211,12 +211,19 @@ namespace xnatest
                 new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 1, 0), V2(1, 0)),
                 new VertexPositionNormalTexture(tt3[0, 1, 0], V3(0, 1, 0), V2(0, 0)),
 
-                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
-                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(-1, 0, 0), V2(0, 1)),
-                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
-                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(-1, 0, 0), V2(1, 0)),
-                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, 0, 1), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[1, 0, 1], V3(0, 0, 1), V2(1, 0)),
+                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 0, 1), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 1], V3(0, 0, 1), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(0, 0, 1), V2(0, 1)),
+                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(0, 0, 1), V2(0, 0)),
+
+                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(0, 0, -1), V2(0, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 1, 0], V3(0, 0, -1), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[1, 0, 0], V3(0, 0, -1), V2(1, 0)),
+                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(0, 0, -1), V2(0, 0)),
 
                 new VertexPositionNormalTexture(tt3[1, 0, 0], V3(1, 0, 0), V2(0, 0)),
                 new VertexPositionNormalTexture(tt3[1, 1, 0], V3(1, 0, 0), V2(1, 0)),
@@ -224,6 +231,13 @@ namespace xnatest
                 new VertexPositionNormalTexture(tt3[1, 1, 1], V3(1, 0, 0), V2(1, 1)),
                 new VertexPositionNormalTexture(tt3[1, 0, 1], V3(1, 0, 0), V2(0, 1)),
                 new VertexPositionNormalTexture(tt3[1, 0, 0], V3(1, 0, 0), V2(0, 0)),
+
+                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
+                new VertexPositionNormalTexture(tt3[0, 0, 1], V3(-1, 0, 0), V2(0, 1)),
+                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[0, 1, 1], V3(-1, 0, 0), V2(1, 1)),
+                new VertexPositionNormalTexture(tt3[0, 1, 0], V3(-1, 0, 0), V2(1, 0)),
+                new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
             };
 
             VertexBuffer vb = new VertexBuffer(graphics.GraphicsDevice, vertexDeclaration, cubeVertices.Length, BufferUsage.None);
@@ -327,17 +341,42 @@ namespace xnatest
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
             for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (world.volume.cell(ix, iy, iz).type != Cell.Type.Air)
                     {
-                        // It's very unreasonable, but adding one to ix and iy seems to fix the problem #4.
-                        basicEffect.World = Matrix.CreateWorld(new Vector3(ix - CELLSIZE / 2 + 1, iy - CELLSIZE / 2, iz - CELLSIZE / 2 + 1), V3(0, 0, 1), Vector3.Up);
-                        foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
+                        if (world.volume.cell(ix, iy, iz).type != Cell.Type.Air && world.volume.cell(ix, iy, iz).adjacents < 6)
                         {
-                            pass.Apply();
+						    bool x0 = world.volume.cell((ix - 1 + CELLSIZE) % CELLSIZE, iy, iz).type != Cell.Type.Air;
+						    bool x1 = world.volume.cell((ix + 1) % CELLSIZE, iy, iz).type != Cell.Type.Air;
+						    bool y0 = world.volume.cell(ix, (iy - 1 + CELLSIZE) % CELLSIZE, iz).type != Cell.Type.Air;
+						    bool y1 = world.volume.cell(ix, (iy + 1) % CELLSIZE, iz).type != Cell.Type.Air;
+						    bool z0 = world.volume.cell(ix, iy, (iz - 1 + CELLSIZE) % CELLSIZE).type != Cell.Type.Air;
+						    bool z1 = world.volume.cell(ix, iy, (iz + 1) % CELLSIZE).type != Cell.Type.Air;
+                            // It's very unreasonable, but adding one to ix and iy seems to fix the problem #4.
+                            basicEffect.World = Matrix.CreateWorld(new Vector3(ix - CELLSIZE / 2 + 1, iy - CELLSIZE / 2, iz - CELLSIZE / 2 + 1), V3(0, 0, 1), Vector3.Up);
+                            foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
+                            {
+                                pass.Apply();
 
-                            graphics.GraphicsDevice.DrawPrimitives(
-                                PrimitiveType.TriangleList,
-                                0,
-                                12
-                            );
+                                if (!x0 && !x1 && !y0 && !y1)
+                                    graphics.GraphicsDevice.DrawPrimitives(
+                                        PrimitiveType.TriangleList,
+                                        0,
+                                        12
+                                    );
+                                else
+                                {
+                                    if (!x0)
+                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 8 * 3, 2);
+                                    if (!x1)
+                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 10 * 3, 2);
+                                    if (!y0)
+                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0 * 3, 2);
+                                    if (!y1)
+                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 2 * 3, 2);
+                                    if (!z0)
+                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 4 * 3, 2);
+                                    if (!z1)
+                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 6 * 3, 2);
+                                }
+                            }
                         }
                     }
 #endif
