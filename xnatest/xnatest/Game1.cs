@@ -33,18 +33,27 @@ namespace xnatest
         Player player;
 
  
+        /// <summary>
         /// Convert from real world coords to massvolume index vector
+        /// </summary>
+        /// <param name="pos">world vector</param>
+        /// <returns>indices</returns>
         public static Vec3i real2ind(Vector3 pos)
         {
-	        Vector3 tpos = pos + new Vector3(0,-1.7f,0);
+	        Vector3 tpos = pos;
 	        Vec3i vi = new Vec3i((int)Math.Floor(tpos.X), (int)Math.Floor(tpos.Y), (int)Math.Floor(tpos.Z));
 	        return vi + new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2;
         }
 
+        /// <summary>
+        /// Convert from massvolume index vector to real world coordinates
+        /// </summary>
+        /// <param name="ipos">indices</param>
+        /// <returns>world vector</returns>
         public static Vector3 ind2real(Vec3i ipos)
         {
 	        Vec3i tpos = ipos - new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2;
-	        return tpos.cast() - new Vector3(0,-1.7f,0);
+	        return tpos.cast();
         }
 
         public struct Cell
