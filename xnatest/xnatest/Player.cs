@@ -59,6 +59,11 @@ namespace xnatest
         double pitch = 0; ///< Pitch and Yaw
         double yaw = 0;
 
+        bool flying = false;
+        bool floorTouched = false;
+
+        KeyboardState oldKeys;
+
         /// <summary>
         /// Half-size of the Player along X axis.
         /// </summary>
@@ -89,7 +94,11 @@ namespace xnatest
         /// </summary>
         /// <param name="dt">Delta-time</param>
         public void think(float dt){
-	        velo += new Vector3(0,-9.8f,0) * dt;
+            // Ignore gravity if flying mode is active
+            if (flying)
+                velo = velo * (float)(Math.Exp(-10.0f * dt));
+            else
+    	        velo += new Vector3(0,-9.8f,0) * dt;
 
 #if false
 	        Vec3i ipos = Game1.real2ind(pos);
@@ -120,13 +129,24 @@ namespace xnatest
                 trymove(new Vector3(-1, 0, 0) * walkSpeed  * dt);
             if (ks.IsKeyDown(Keys.D))
                 trymove(new Vector3(1, 0, 0) * walkSpeed * dt);
-            if (ks.IsKeyDown(Keys.Q))
-                trymove(new Vector3(0, 20 * dt, 0), true);
-            if (ks.IsKeyDown(Keys.Z))
-                trymove(new Vector3(0, -10 * dt, 0), true);
+            if (flying)
+            {
+                if (ks.IsKeyDown(Keys.Q))
+                    trymove(new Vector3(0, dt * walkSpeed, 0));
+                if (ks.IsKeyDown(Keys.Z))
+                    trymove(new Vector3(0, -dt * walkSpeed, 0));
+            }
+            if (ks.IsKeyDown(Keys.Space) && floorTouched)
+                trymove(new Vector3(0, 5, 0), true);
+//            if (ks.IsKeyDown(Keys.Z))
+//                trymove(new Vector3(0, -10 * dt, 0), true);
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.F) && ks.IsKeyUp(Keys.F))
+                flying = !flying;
+            oldKeys = ks;
 
             updateRot();
 
+            floorTouched = false;
             trymove(velo * dt); //pos += velo * dt;
 	        rot = Quaternion.Slerp(desiredRot, rot, (float)Math.Exp(-dt * 5.0));
         }
@@ -153,16 +173,26 @@ namespace xnatest
             Vector3 worldDeltaDir = worldDelta;
             worldDeltaDir.Normalize();
 
-            for (int ix = 0; ix < 2; ix++) for (int iz = 0; iz < 2; iz++)
+            for (int ix = 0; ix < 2; ix++) for (int iz = 0; iz < 2; iz++) for(int iy = 0; iy < 2; iy++)
                 {
                     // Position to check collision with the walls
-                    Vector3 hitcheck = new Vector3(dest.X + (ix * 2 - 1) * boundWidth, dest.Y - eyeHeight, dest.Z + (iz * 2 - 1) * boundLength);
-                    if (world.volume.isSolid(Game1.real2ind(hitcheck)))
+                    Vector3 hitcheck = new Vector3(dest.X + (ix * 2 - 1) * boundWidth, dest.Y - eyeHeight + iy * boundHeight, dest.Z + (iz * 2 - 1) * boundLength);
+
+                    Game1.IndFrac inf = Game1.real2ind(hitcheck);
+
+//                    if (0.5f < inf.frac.Y)
+//                        inf.index.Y += 1;
+
+                    if (world.volume.isSolid(inf))
                     {
                         // Clear velocity component along delta direction
                         float vad = Vector3.Dot(velo, worldDeltaDir);
-                        if(0 < vad)
+                        if (0 < vad)
+                        {
+                            if (worldDeltaDir.Y < 0)
+                                floorTouched = true;
                             velo -= vad * worldDeltaDir;
+                        }
                         return false;
                     }
                 }

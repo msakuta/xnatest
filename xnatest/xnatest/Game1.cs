@@ -32,17 +32,26 @@ namespace xnatest
 
         Player player;
 
+        public struct IndFrac
+        {
+            public Vec3i index;
+            public Vector3 frac;
+            public static implicit operator Vec3i(IndFrac inf)
+            {
+                return inf.index;
+            }
+        }
  
         /// <summary>
         /// Convert from real world coords to massvolume index vector
         /// </summary>
         /// <param name="pos">world vector</param>
         /// <returns>indices</returns>
-        public static Vec3i real2ind(Vector3 pos)
+        public static IndFrac real2ind(Vector3 pos)
         {
 	        Vector3 tpos = pos;
 	        Vec3i vi = new Vec3i((int)Math.Floor(tpos.X), (int)Math.Floor(tpos.Y), (int)Math.Floor(tpos.Z));
-	        return vi + new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2;
+	        return new IndFrac(){index = vi + new Vec3i(CELLSIZE, CELLSIZE, CELLSIZE) / 2, frac = pos - vi.cast()};
         }
 
         /// <summary>
@@ -153,7 +162,7 @@ namespace xnatest
                 MathHelper.ToRadians(45),  // 45 degree angle
                 (float)GraphicsDevice.Viewport.Width /
                 (float)GraphicsDevice.Viewport.Height,
-                1.0f, 200.0f);
+                0.3f, 200.0f);
 
             basicEffect = new BasicEffect(graphics.GraphicsDevice);
 
