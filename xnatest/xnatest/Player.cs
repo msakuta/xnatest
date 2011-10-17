@@ -11,6 +11,9 @@ using Microsoft.Xna.Framework.Media;
 
 namespace xnatest
 {
+    /// <summary>
+    /// The Player's class, maintaining camera's position and velocity, etc.
+    /// </summary>
     class Player{
         /// <summary>
         /// Reference to global world object
@@ -93,7 +96,7 @@ namespace xnatest
         /// Called every frame
         /// </summary>
         /// <param name="dt">Delta-time</param>
-        public void think(float dt){
+        public void Update(float dt){
             // Ignore gravity if flying mode is active
             if (flying)
                 velo = velo * (float)(Math.Exp(-10.0f * dt));
@@ -138,8 +141,6 @@ namespace xnatest
             }
             if (ks.IsKeyDown(Keys.Space) && floorTouched)
                 trymove(new Vector3(0, 5, 0), true);
-//            if (ks.IsKeyDown(Keys.Z))
-//                trymove(new Vector3(0, -10 * dt, 0), true);
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.F) && ks.IsKeyUp(Keys.F))
                 flying = !flying;
             oldKeys = ks;
@@ -180,10 +181,7 @@ namespace xnatest
 
                     Game1.IndFrac inf = Game1.real2ind(hitcheck);
 
-//                    if (0.5f < inf.frac.Y)
-//                        inf.index.Y += 1;
-
-                    if (world.volume.isSolid(inf))
+                    if (world.isSolid(inf))
                     {
                         // Clear velocity component along delta direction
                         float vad = Vector3.Dot(velo, worldDeltaDir);

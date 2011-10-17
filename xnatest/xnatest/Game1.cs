@@ -11,6 +11,8 @@ using Microsoft.Xna.Framework.Media;
 
 namespace xnatest
 {
+    /// The type to index World.volume. Be sure to keep it a struct.
+    using CellIndex = Vec3i;
 
     /// <summary>
     /// This is the main type for your game
@@ -27,11 +29,16 @@ namespace xnatest
         VertexDeclaration vertexDeclaration;
         BasicEffect basicEffect;
 
-        public const int CELLSIZE = 32;
+        public const int CELLSIZE = 16;
 
 
         Player player;
 
+        /// <summary>
+        /// A type dedicated real2ind() to return a indices vector and a fraction vector together.
+        /// </summary>
+        /// <remarks>Implicitly converts to Vec3i for compatibility.</remarks>
+        /// <seealso cref="real2ind"/>
         public struct IndFrac
         {
             public Vec3i index;
@@ -65,6 +72,12 @@ namespace xnatest
 	        return tpos.cast();
         }
 
+        /// <summary>
+        /// The internal atomic type that the world is made of.
+        /// </summary>
+        /// <remarks>
+        /// To keep memory space efficiency fair, be sure to make it a struct and not to add much data members.
+        /// </remarks>
         public struct Cell
         {
             public enum Type { Air, Grass };
@@ -74,6 +87,9 @@ namespace xnatest
             public int adjacents;
         }
 
+        /// <summary>
+        /// A unit of the world that contains certain number of Cells.
+        /// </summary>
         public class CellVolume
         {
             Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
@@ -83,12 +99,12 @@ namespace xnatest
                 return v[ix, iy, iz];
             }
 
-            public void initialize()
+            public void initialize(Vec3i ci)
             {
 		        float[,] field = new float[CELLSIZE, CELLSIZE];
 		        PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams(){ seed = 12321, cellsize = CELLSIZE}, new PerlinNoise.FieldAssign(field));
 		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
-                    v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE / 2 < iy ? Cell.Type.Air : Cell.Type.Grass);
+                    v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE / 2 < iy + ci.Y * CELLSIZE ? Cell.Type.Air : Cell.Type.Grass);
 		        }
 		        for(int ix = 0; ix < CELLSIZE; ix++) for(int iy = 0; iy < CELLSIZE; iy++) for(int iz = 0; iz < CELLSIZE; iz++){
 			        updateAdj(ix, iy, iz);
@@ -116,15 +132,117 @@ namespace xnatest
             }
         }
 
-        public class World{
-            public CellVolume volume = new CellVolume();
+        /// <summary>
+        /// Returns remainder of divison of integers that never be negative.
+        /// </summary>
+        /// <remarks>
+        /// Normally, dividing two integers can result in positive or negative, depending the signs of
+        /// dividend and divisor.
+        /// In our case, this is not desirable.
+        /// </remarks>
+        /// <param name="v">Dividend</param>
+        /// <param name="divisor">Divisor</param>
+        /// <returns>Remainder</returns>
+        static public int SignModulo(int v, int divisor)
+        {
+            return (v - v / divisor * divisor + divisor) % divisor;
         }
 
-        World world = new World();
+        /// <summary>
+        /// Returns quotient of division of integers that never be negative.
+        /// </summary>
+        /// <remarks>
+        /// Normally, dividing two integers can result in positive or negative, depending the signs of
+        /// dividend and divisor.
+        /// In our case, this is not desirable.
+        /// </remarks>
+        /// <param name="v">Dividend</param>
+        /// <param name="divisor">Divisor</param>
+        /// <returns>Quotient</returns>
+        /// <seealso cref="SignModulo"/>
+        static public int SignDiv(int v, int divisor)
+        {
+            return (v - SignModulo(v, divisor)) / divisor;
+        }
+
+        /// <summary>
+        /// Type to represent a physical world. Merely a collection of CellVolumes.
+        /// </summary>
+        public class World{
+            /// <summary>
+            /// Reference to global world object
+            /// </summary>
+            Game1 game;
+
+            public World(Game1 game)
+            {
+                this.game = game;
+            }
+
+            //            public CellVolume volume = new CellVolume();
+            System.Collections.Generic.Dictionary<CellIndex, CellVolume> _volume = new System.Collections.Generic.Dictionary<CellIndex, CellVolume>();
+            public System.Collections.Generic.Dictionary<CellIndex, CellVolume> volume { get { return _volume; } }
+
+            public Cell cell(int ix, int iy, int iz)
+            {
+                CellVolume cv = _volume[new CellIndex(ix / CELLSIZE, iy / CELLSIZE, iz / CELLSIZE)];
+                if (cv != null)
+                    return cv.cell(ix - ix / CELLSIZE * CELLSIZE, iy - iy / CELLSIZE * CELLSIZE, iz - iz / CELLSIZE * CELLSIZE);
+                return new Cell(Cell.Type.Air);
+            }
+
+            public bool isSolid(Vec3i v)
+            {
+                return isSolid(v.X, v.Y, v.Z);
+            }
+
+            public bool isSolid(int ix, int iy, int iz)
+            {
+                CellIndex ci = new CellIndex(
+                    SignDiv(ix, CELLSIZE),
+                    SignDiv(iy, CELLSIZE),
+                    SignDiv(iz, CELLSIZE));
+                if(_volume.ContainsKey(ci))
+                {
+                    CellVolume cv = _volume[ci];
+                    return cv.isSolid(new Vec3i(
+                        SignModulo(ix, CELLSIZE),
+                        SignModulo(iy, CELLSIZE),
+                        SignModulo(iz, CELLSIZE)));
+                }
+                else
+                    return false;
+            }
+
+            /// <summary>
+            /// Called every frame.
+            /// </summary>
+            /// <param name="dt">Delta-time</param>
+            public void Update(double dt)
+            {
+                IndFrac i = real2ind(game.player.getPos());
+                for (int ix = 0; ix < 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = 0; iz < 2; iz++)
+                        {
+                            CellIndex ci = new CellIndex(
+                                SignDiv((i.index.X + (2 * ix - 1) * CELLSIZE / 2), CELLSIZE),
+                                SignDiv((i.index.Y + (2 * iy - 1) * CELLSIZE / 2), CELLSIZE),
+                                SignDiv((i.index.Z + (2 * iz - 1) * CELLSIZE / 2), CELLSIZE));
+                            if(!_volume.ContainsKey(ci))
+                            {
+                                CellVolume cv = new CellVolume();
+                                cv.initialize(ci);
+                                _volume.Add(ci, cv);
+                            }
+                        }
+            }
+        }
+
+        World world;
 
 
         public Game1()
         {
+            world = new World(this);
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             graphics.PreferredBackBufferWidth = 1200;
@@ -150,7 +268,8 @@ namespace xnatest
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            world.volume.initialize();
+            world.volume.Add(new CellIndex(0, 0, 0), new CellVolume());
+            world.volume[new CellIndex(0, 0, 0)].initialize(new Vec3i(0,0,0));
             player = new Player(world);
 
             float tilt = MathHelper.ToRadians(0);  // 0 degree angle
@@ -325,7 +444,9 @@ namespace xnatest
                 this.Exit();
 
             // TODO: Add your update logic here
-            player.think((float)gameTime.ElapsedGameTime.TotalSeconds);
+            player.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+
+            world.Update(gameTime.ElapsedGameTime.TotalSeconds);
 
             base.Update(gameTime);
         }
@@ -354,51 +475,90 @@ namespace xnatest
             spriteBatch.Draw(myTexture, spritePosition, Color.White);
             spriteBatch.End();
 #else
+            IndFrac inf = real2ind(player.getPos());
             RasterizerState rasterizerState1 = new RasterizerState();
             rasterizerState1.CullMode = CullMode.CullClockwiseFace;
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
-            for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (world.volume.cell(ix, iy, iz).type != Cell.Type.Air)
-                    {
-                        if (world.volume.cell(ix, iy, iz).type != Cell.Type.Air && world.volume.cell(ix, iy, iz).adjacents < 6)
-                        {
-						    bool x0 = world.volume.cell((ix - 1 + CELLSIZE) % CELLSIZE, iy, iz).type != Cell.Type.Air;
-						    bool x1 = world.volume.cell((ix + 1) % CELLSIZE, iy, iz).type != Cell.Type.Air;
-						    bool y0 = world.volume.cell(ix, (iy - 1 + CELLSIZE) % CELLSIZE, iz).type != Cell.Type.Air;
-						    bool y1 = world.volume.cell(ix, (iy + 1) % CELLSIZE, iz).type != Cell.Type.Air;
-						    bool z0 = world.volume.cell(ix, iy, (iz - 1 + CELLSIZE) % CELLSIZE).type != Cell.Type.Air;
-						    bool z1 = world.volume.cell(ix, iy, (iz + 1) % CELLSIZE).type != Cell.Type.Air;
-                            // It's very unreasonable, but adding one to ix and iy seems to fix the problem #4.
-                            basicEffect.World = Matrix.CreateWorld(new Vector3(ix - CELLSIZE / 2 + 1, iy - CELLSIZE / 2, iz - CELLSIZE / 2 + 1), V3(0, 0, 1), Vector3.Up);
-                            foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
-                            {
-                                pass.Apply();
-
-                                if (!x0 && !x1 && !y0 && !y1)
-                                    graphics.GraphicsDevice.DrawPrimitives(
-                                        PrimitiveType.TriangleList,
-                                        0,
-                                        12
-                                    );
-                                else
-                                {
-                                    if (!x0)
-                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 8 * 3, 2);
-                                    if (!x1)
-                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 10 * 3, 2);
-                                    if (!y0)
-                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0 * 3, 2);
-                                    if (!y1)
-                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 2 * 3, 2);
-                                    if (!z0)
-                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 4 * 3, 2);
-                                    if (!z1)
-                                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 6 * 3, 2);
-                                }
-                            }
-                        }
-                    }
+            foreach (System.Collections.Generic.KeyValuePair<CellIndex, CellVolume> kv in world.volume)
+            {
+                // Cull too far CellVolumes
+                if ((kv.Key.X + 2) * CELLSIZE < inf.index.X)
+                    continue;
+                if (inf.index.X < (kv.Key.X - 1) * CELLSIZE)
+                    continue;
+                if ((kv.Key.Y + 2) * CELLSIZE < inf.index.Y)
+                    continue;
+                if (inf.index.Y < (kv.Key.Y - 1) * CELLSIZE)
+                    continue;
+                if ((kv.Key.Z + 2) * CELLSIZE < inf.index.Z)
+                    continue;
+                if (inf.index.Z < (kv.Key.Z - 1) * CELLSIZE)
+                    continue;
+                for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (world.cell(ix, iy, iz).type != Cell.Type.Air)
+                                DrawInternal(kv, ix, iy, iz, inf);
+            }
 #endif
             base.Draw(gameTime);
+        }
+
+        /// <summary>
+        /// Draw a single CellVolume.
+        /// </summary>
+        /// <param name="kv"></param>
+        /// <param name="ix"></param>
+        /// <param name="iy"></param>
+        /// <param name="iz"></param>
+        /// <param name="inf">Index of</param>
+        protected void DrawInternal(System.Collections.Generic.KeyValuePair<CellIndex, CellVolume> kv, int ix, int iy, int iz, IndFrac inf)
+        {
+            if (kv.Value.cell(ix, iy, iz).type == Cell.Type.Air)
+                return;
+            if (6 <= kv.Value.cell(ix, iy, iz).adjacents)
+                return;
+            if (16 < Math.Abs(ix + kv.Key.X * CELLSIZE - inf.index.X))
+                return;
+            if (16 < Math.Abs(iy + kv.Key.Y * CELLSIZE - inf.index.Y))
+                return;
+            if (16 < Math.Abs(iz + kv.Key.Z * CELLSIZE - inf.index.Z))
+                return;
+            bool x0 = ix + kv.Key.X * CELLSIZE < inf.index.X || kv.Value.cell((ix - 1 + CELLSIZE) % CELLSIZE, iy, iz).type != Cell.Type.Air;
+            bool x1 = inf.index.X < ix + kv.Key.X * CELLSIZE || kv.Value.cell((ix + 1) % CELLSIZE, iy, iz).type != Cell.Type.Air;
+            bool y0 = iy + kv.Key.Y * CELLSIZE < inf.index.Y || kv.Value.cell(ix, (iy - 1 + CELLSIZE) % CELLSIZE, iz).type != Cell.Type.Air;
+            bool y1 = inf.index.Y < iy + kv.Key.Y * CELLSIZE || kv.Value.cell(ix, (iy + 1) % CELLSIZE, iz).type != Cell.Type.Air;
+            bool z0 = kv.Value.cell(ix, iy, (iz - 1 + CELLSIZE) % CELLSIZE).type != Cell.Type.Air;
+            bool z1 = kv.Value.cell(ix, iy, (iz + 1) % CELLSIZE).type != Cell.Type.Air;
+            // It's very unreasonable, but adding one to ix and iy seems to fix the problem #4.
+            basicEffect.World = Matrix.CreateWorld(new Vector3(
+                kv.Key.X * CELLSIZE + ix - CELLSIZE / 2 + 1,
+                kv.Key.Y * CELLSIZE + iy - CELLSIZE / 2,
+                kv.Key.Z * CELLSIZE + iz - CELLSIZE / 2 + 1),
+                V3(0, 0, 1), Vector3.Up);
+            foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+
+                if (!x0 && !x1 && !y0 && !y1)
+                    graphics.GraphicsDevice.DrawPrimitives(
+                        PrimitiveType.TriangleList,
+                        0,
+                        12
+                    );
+                else
+                {
+                    if (!x0)
+                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 8 * 3, 2);
+                    if (!x1)
+                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 10 * 3, 2);
+                    if (!y0)
+                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0 * 3, 2);
+                    if (!y1)
+                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 2 * 3, 2);
+                    if (!z0)
+                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 4 * 3, 2);
+                    if (!z1)
+                        graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 6 * 3, 2);
+                }
+            }
         }
     }
 }

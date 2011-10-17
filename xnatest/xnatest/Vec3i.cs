@@ -6,8 +6,10 @@ namespace xnatest
 
     /// <summary>
     /// Vector3 variant with int as element type.
-    /// If only class template is available in C#, we wouldn't need to re-invent the wheels here.
     /// </summary>
+    /// <remarks>
+    /// If only class template is available in C#, we wouldn't need to re-invent the wheels here.
+    /// </remarks>
     public struct Vec3i
     {
         public int X;
@@ -19,6 +21,13 @@ namespace xnatest
             X = x;
             Y = y;
             Z = z;
+        }
+
+        public Vec3i(Vector3 v)
+        {
+            X = (int)v.X;
+            Y = (int)v.Y;
+            Z = (int)v.Z;
         }
 
         public static Vec3i operator /(Vec3i v, int d)

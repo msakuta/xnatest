@@ -2,6 +2,12 @@
 
 namespace xnatest
 {
+    /// <summary>
+    /// Type and function collection about generating Perlin Noise.
+    /// </summary>
+    /// <remarks>
+    /// Really should be a namespace, but C# doesn't allow a function that is not a class or struct member.
+    /// </remarks>
     class PerlinNoise
     {
         /// <summary>
