@@ -39,19 +39,39 @@ namespace xnatest
         public class CellVolume
         {
             Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
+            int _solidcount = 0;
 
+            /// <summary>
+            /// Count of solid Cells in this CellVolume.
+            /// </summary>
+            public int solidcount { get { return _solidcount; } }
+
+            /// <summary>
+            /// Retrieves specific Cell in this CellVolume
+            /// </summary>
+            /// <param name="ix">X index</param>
+            /// <param name="iy">Y index</param>
+            /// <param name="iz">Z index</param>
+            /// <returns>Cell object</returns>
             public Cell cell(int ix, int iy, int iz)
             {
-                return v[ix, iy, iz];
+                return ix < 0 || CELLSIZE <= ix || iy < 0 || CELLSIZE <= iy || iz < 0 || CELLSIZE <= iz ? new Cell(Cell.Type.Air) : v[ix, iy, iz];
             }
 
+            /// <summary>
+            /// Initialize this CellVolume with Perlin Noise with given position index.
+            /// </summary>
+            /// <param name="ci">The position of new CellVolume</param>
             public void initialize(Vec3i ci)
             {
                 float[,] field = new float[CELLSIZE, CELLSIZE];
-                PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() { seed = 12321, cellsize = CELLSIZE }, new PerlinNoise.FieldAssign(field));
+                PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() { seed = 12321, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE }, new PerlinNoise.FieldAssign(field));
+                _solidcount = 0;
                 for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
                         {
-                            v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE / 2 < iy + ci.Y * CELLSIZE ? Cell.Type.Air : Cell.Type.Grass);
+                            v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE * 2 < iy + ci.Y * CELLSIZE ? Cell.Type.Air : Cell.Type.Grass);
+                            if (v[ix, iy, iz].type != Cell.Type.Air)
+                                _solidcount++;
                         }
                 for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
                         {
@@ -137,12 +157,12 @@ namespace xnatest
             public void Update(double dt)
             {
                 IndFrac i = real2ind(game.player.getPos());
-                for (int ix = 0; ix < 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = 0; iz < 2; iz++)
+                for (int ix = -2; ix <= 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = -2; iz <= 2; iz++)
                         {
                             CellIndex ci = new CellIndex(
-                                SignDiv((i.index.X + (2 * ix - 1) * CELLSIZE / 2), CELLSIZE),
+                                SignDiv((i.index.X + ix * CELLSIZE), CELLSIZE),
                                 SignDiv((i.index.Y + (2 * iy - 1) * CELLSIZE / 2), CELLSIZE),
-                                SignDiv((i.index.Z + (2 * iz - 1) * CELLSIZE / 2), CELLSIZE));
+                                SignDiv((i.index.Z + iz * CELLSIZE), CELLSIZE));
                             if (!_volume.ContainsKey(ci))
                             {
                                 CellVolume cv = new CellVolume();

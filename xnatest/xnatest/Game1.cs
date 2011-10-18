@@ -31,6 +31,8 @@ namespace xnatest
 
         public const int CELLSIZE = 16;
 
+        public int maxViewDistance = CELLSIZE * 2;
+
 
         Player player;
 
@@ -90,12 +92,11 @@ namespace xnatest
         }
 
         /// <summary>
-        /// Returns quotient of division of integers that never be negative.
+        /// Returns quotient of division of integers that is always greatest integer equal or less than the quotient, regardless of sign.
         /// </summary>
         /// <remarks>
-        /// Normally, dividing two integers can result in positive or negative, depending the signs of
-        /// dividend and divisor.
-        /// In our case, this is not desirable.
+        /// Normally, dividing two integers truncates remainder of absolute value, but we want the result to be consistent regardless of
+        /// zero position.
         /// </remarks>
         /// <param name="v">Dividend</param>
         /// <param name="divisor">Divisor</param>
@@ -351,20 +352,22 @@ namespace xnatest
             graphics.GraphicsDevice.RasterizerState = rasterizerState1;
             foreach (System.Collections.Generic.KeyValuePair<CellIndex, CellVolume> kv in world.volume)
             {
+                if (kv.Value.solidcount == 0)
+                    continue;
                 // Cull too far CellVolumes
-                if ((kv.Key.X + 2) * CELLSIZE < inf.index.X)
+                if ((kv.Key.X + 1) * CELLSIZE + maxViewDistance < inf.index.X)
                     continue;
-                if (inf.index.X < (kv.Key.X - 1) * CELLSIZE)
+                if (inf.index.X < kv.Key.X * CELLSIZE - maxViewDistance)
                     continue;
-                if ((kv.Key.Y + 2) * CELLSIZE < inf.index.Y)
+                if ((kv.Key.Y + 1) * CELLSIZE + maxViewDistance < inf.index.Y)
                     continue;
-                if (inf.index.Y < (kv.Key.Y - 1) * CELLSIZE)
+                if (inf.index.Y < kv.Key.Y * CELLSIZE - maxViewDistance)
                     continue;
-                if ((kv.Key.Z + 2) * CELLSIZE < inf.index.Z)
+                if ((kv.Key.Z + 1) * CELLSIZE + maxViewDistance < inf.index.Z)
                     continue;
-                if (inf.index.Z < (kv.Key.Z - 1) * CELLSIZE)
+                if (inf.index.Z < kv.Key.Z * CELLSIZE - maxViewDistance)
                     continue;
-                for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++) if (world.cell(ix, iy, iz).type != Cell.Type.Air)
+                for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
                                 DrawInternal(kv, ix, iy, iz, inf);
             }
 #endif
@@ -383,20 +386,21 @@ namespace xnatest
         {
             if (kv.Value.cell(ix, iy, iz).type == Cell.Type.Air)
                 return;
-            if (6 <= kv.Value.cell(ix, iy, iz).adjacents)
+//            if (6 <= kv.Value.cell(ix, iy, iz).adjacents)
+//                return;
+            if (maxViewDistance < Math.Abs(ix + kv.Key.X * CELLSIZE - inf.index.X))
                 return;
-            if (16 < Math.Abs(ix + kv.Key.X * CELLSIZE - inf.index.X))
+            if (maxViewDistance < Math.Abs(iy + kv.Key.Y * CELLSIZE - inf.index.Y))
                 return;
-            if (16 < Math.Abs(iy + kv.Key.Y * CELLSIZE - inf.index.Y))
+            if (maxViewDistance < Math.Abs(iz + kv.Key.Z * CELLSIZE - inf.index.Z))
                 return;
-            if (16 < Math.Abs(iz + kv.Key.Z * CELLSIZE - inf.index.Z))
-                return;
-            bool x0 = ix + kv.Key.X * CELLSIZE < inf.index.X || kv.Value.cell((ix - 1 + CELLSIZE) % CELLSIZE, iy, iz).type != Cell.Type.Air;
-            bool x1 = inf.index.X < ix + kv.Key.X * CELLSIZE || kv.Value.cell((ix + 1) % CELLSIZE, iy, iz).type != Cell.Type.Air;
-            bool y0 = iy + kv.Key.Y * CELLSIZE < inf.index.Y || kv.Value.cell(ix, (iy - 1 + CELLSIZE) % CELLSIZE, iz).type != Cell.Type.Air;
-            bool y1 = inf.index.Y < iy + kv.Key.Y * CELLSIZE || kv.Value.cell(ix, (iy + 1) % CELLSIZE, iz).type != Cell.Type.Air;
-            bool z0 = kv.Value.cell(ix, iy, (iz - 1 + CELLSIZE) % CELLSIZE).type != Cell.Type.Air;
-            bool z1 = kv.Value.cell(ix, iy, (iz + 1) % CELLSIZE).type != Cell.Type.Air;
+            bool x0 = ix + kv.Key.X * CELLSIZE < inf.index.X || kv.Value.cell(ix - 1, iy, iz).type != Cell.Type.Air;
+            bool x1 = inf.index.X < ix + kv.Key.X * CELLSIZE || kv.Value.cell(ix + 1, iy, iz).type != Cell.Type.Air;
+            bool y0 = iy + kv.Key.Y * CELLSIZE < inf.index.Y || kv.Value.cell(ix, iy - 1, iz).type != Cell.Type.Air;
+            bool y1 = inf.index.Y < iy + kv.Key.Y * CELLSIZE || kv.Value.cell(ix, iy + 1, iz).type != Cell.Type.Air;
+            bool z0 = iz + kv.Key.Z * CELLSIZE < inf.index.Z || kv.Value.cell(ix, iy, iz - 1).type != Cell.Type.Air;
+            bool z1 = inf.index.Z < iz + kv.Key.Z * CELLSIZE || kv.Value.cell(ix, iy, iz + 1).type != Cell.Type.Air;
+
             // It's very unreasonable, but adding one to ix and iy seems to fix the problem #4.
             basicEffect.World = Matrix.CreateWorld(new Vector3(
                 kv.Key.X * CELLSIZE + ix - CELLSIZE / 2 + 1,

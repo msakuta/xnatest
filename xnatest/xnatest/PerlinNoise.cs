@@ -40,10 +40,11 @@ namespace xnatest
         /// </summary>
         public class PerlinNoiseParams
         {
-            public long seed = 0; /// Random seed
-            public long cellsize = 16; /// Size of the one edge of the square area.
-            public double persistence = 0.5; /// Persistence of the argument.
-            public int xofs = 0, yofs = 0; /// Offsets for each axes.
+            public long seed = 0; ///< Random seed
+            public long cellsize = 16; ///< Size of the one edge of the square area.
+            public int octaves = 4; ///< Number of octabes to accumulate the noise in.
+            public double persistence = 0.5; ///< Persistence of the argument.
+            public int xofs = 0, yofs = 0; ///< Offsets for each axes.
         }
 
         public static void perlin_noise(long seed, PerlinNoiseCallback callback, long cellsize, int xofs = 0, int yofs = 0)
@@ -67,35 +68,35 @@ namespace xnatest
             int octave;
             int xi, yi;
 
-            // Temporarily save noise patturn for use as the source signal of fractal noise.
-            for (xi = 0; xi < cellsize; xi++) for (yi = 0; yi < cellsize; yi++)
-                {
-                    Random rs = new Random((int)(seed ^ (xi + param.xofs) + ((yi + param.yofs) << 16)));
-                    int bas = rs.Next(baseMax);
-                    work[xi, yi] = bas;
-                }
-
             double factor = 1.0;
             double sumfactor = 0.0;
 
             // Accumulate signal over octaves to produce Perlin noise.
-            for (octave = 0; (1 << octave) < cellsize; octave += 1)
+            for (octave = 0; octave < param.octaves; octave += 1)
             {
                 int cell = 1 << octave;
                 if (octave == 0)
                 {
                     for (xi = 0; xi < cellsize; xi++) for (yi = 0; yi < cellsize; yi++)
-                            work2[xi, yi] = (int)(work[xi, yi] * factor);
+                        {
+                            Random rs = new Random((int)(seed ^ (xi + param.xofs) + ((yi + param.yofs) << 16)));
+                            work2[xi, yi] = (int)(rs.Next(baseMax) * factor);
+                        }
                 }
                 else for (xi = 0; xi < cellsize; xi++) for (yi = 0; yi < cellsize; yi++)
                         {
                             int xj, yj;
+                            int xsm = Game1.SignModulo(xi + param.xofs, cell);
+                            int ysm = Game1.SignModulo(yi + param.yofs, cell);
+                            int xsd = Game1.SignDiv(xi + param.xofs, cell);
+                            int ysd = Game1.SignDiv(yi + param.yofs, cell);
                             double sum = 0;
                             for (xj = 0; xj <= 1; xj++) for (yj = 0; yj <= 1; yj++)
                                 {
-                                    sum += (double)work[xi / cell + xj, yi / cell + yj]
-                                        * (xj != 0 ? xi % cell : (cell - xi % cell - 1)) / (double)cell
-                                        * (yj != 0 ? yi % cell : (cell - yi % cell - 1)) / (double)cell;
+                                    Random rs = new Random((int)(seed ^ (xsd + xj) + ((ysd + yj) << 16)));
+                                    sum += (double)rs.Next(baseMax)
+                                        * (xj != 0 ? xsm : (cell - xsm - 1)) / (double)cell
+                                        * (yj != 0 ? ysm : (cell - ysm - 1)) / (double)cell;
                                 }
                             work2[xi, yi] += (int)(sum * factor);
                             if (maxwork2 < work2[xi, yi])
