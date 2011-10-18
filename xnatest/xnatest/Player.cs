@@ -62,7 +62,9 @@ namespace xnatest
         double pitch = 0; ///< Pitch and Yaw
         double yaw = 0;
 
-        bool flying = false;
+        enum MoveMode { Walk, Fly, Ghost };
+        MoveMode moveMode;
+        public bool flying {get { return moveMode == MoveMode.Fly || moveMode == MoveMode.Ghost;}}
         bool floorTouched = false;
 
         KeyboardState oldKeys;
@@ -141,8 +143,15 @@ namespace xnatest
             }
             if (ks.IsKeyDown(Keys.Space) && floorTouched)
                 trymove(new Vector3(0, 5, 0), true);
+
+            // Toggle fly mode
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.F) && ks.IsKeyUp(Keys.F))
-                flying = !flying;
+                moveMode = moveMode == MoveMode.Fly ? MoveMode.Walk : MoveMode.Fly;
+
+            // Toggle ghost mode
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.C) && ks.IsKeyUp(Keys.C))
+                moveMode = moveMode == MoveMode.Ghost ? MoveMode.Walk : MoveMode.Ghost;
+
             oldKeys = ks;
 
             updateRot();
@@ -174,26 +183,29 @@ namespace xnatest
             Vector3 worldDeltaDir = worldDelta;
             worldDeltaDir.Normalize();
 
-            for (int ix = 0; ix < 2; ix++) for (int iz = 0; iz < 2; iz++) for(int iy = 0; iy < 2; iy++)
-                {
-                    // Position to check collision with the walls
-                    Vector3 hitcheck = new Vector3(dest.X + (ix * 2 - 1) * boundWidth, dest.Y - eyeHeight + iy * boundHeight, dest.Z + (iz * 2 - 1) * boundLength);
-
-                    Game1.IndFrac inf = Game1.real2ind(hitcheck);
-
-                    if (world.isSolid(inf))
-                    {
-                        // Clear velocity component along delta direction
-                        float vad = Vector3.Dot(velo, worldDeltaDir);
-                        if (0 < vad)
+            if (moveMode != MoveMode.Ghost)
+            {
+                for (int ix = 0; ix < 2; ix++) for (int iz = 0; iz < 2; iz++) for (int iy = 0; iy < 2; iy++)
                         {
-                            if (worldDeltaDir.Y < 0)
-                                floorTouched = true;
-                            velo -= vad * worldDeltaDir;
+                            // Position to check collision with the walls
+                            Vector3 hitcheck = new Vector3(dest.X + (ix * 2 - 1) * boundWidth, dest.Y - eyeHeight + iy * boundHeight, dest.Z + (iz * 2 - 1) * boundLength);
+
+                            Game1.IndFrac inf = Game1.real2ind(hitcheck);
+
+                            if (world.isSolid(inf))
+                            {
+                                // Clear velocity component along delta direction
+                                float vad = Vector3.Dot(velo, worldDeltaDir);
+                                if (0 < vad)
+                                {
+                                    if (worldDeltaDir.Y < 0)
+                                        floorTouched = true;
+                                    velo -= vad * worldDeltaDir;
+                                }
+                                return false;
+                            }
                         }
-                        return false;
-                    }
-                }
+            }
 
             pos = dest;
             return false;
