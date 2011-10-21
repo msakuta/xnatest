@@ -38,8 +38,12 @@ namespace xnatest
         /// </summary>
         public class CellVolume
         {
+            CellIndex index;
+            World world;
             Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
             int _solidcount = 0;
+
+            public CellVolume(World world) { this.world = world; }
 
             /// <summary>
             /// Count of solid Cells in this CellVolume.
@@ -49,12 +53,50 @@ namespace xnatest
             /// <summary>
             /// Retrieves specific Cell in this CellVolume
             /// </summary>
-            /// <param name="ix">X index</param>
-            /// <param name="iy">Y index</param>
-            /// <param name="iz">Z index</param>
+            /// <remarks>
+            /// If the indices reach border of the CellVolume, it will recursively retrieve foreign Cells.
+            ///
+            /// Note that even if two or more indices are out of range, this function will find the correct Cell
+            /// by recursively calling itself in turn with each axes.
+            /// But what's the difference between this and World::cell(), you may ask. That's the key for the next
+            /// step of optimization.
+            /// 
+            /// I've felt it's significantly sensitive to algorithm's complexity compared to C++ equivalent code.
+            /// It should be code optimization issue.
+            /// </remarks>
+            /// <param name="ix">Index along X axis in Cells. If in range [0, CELLSIZE), this object's member is returned.</param>
+            /// <param name="iy">Index along Y axis in Cells. If in range [0, CELLSIZE), this object's member is returned.</param>
+            /// <param name="iz">Index along Z axis in Cells. If in range [0, CELLSIZE), this object's member is returned.</param>
             /// <returns>Cell object</returns>
             public Cell cell(int ix, int iy, int iz)
             {
+                if (ix < 0 || CELLSIZE <= ix)
+                {
+                    CellIndex ci = new CellIndex(index.X + SignDiv(ix, CELLSIZE), index.Y, index.Z);
+                    if (world.volume.ContainsKey(ci))
+                    {
+                        CellVolume cv = world.volume[ci];
+                        return cv.cell(SignModulo(ix, CELLSIZE), iy, iz);
+                    }
+                }
+                if (iy < 0 || CELLSIZE <= iy)
+                {
+                    CellIndex ci = new CellIndex(index.X, index.Y + SignDiv(iy, CELLSIZE), index.Z);
+                    if (world.volume.ContainsKey(ci))
+                    {
+                        CellVolume cv = world.volume[ci];
+                        return cv.cell(ix, SignModulo(iy, CELLSIZE), iz);
+                    }
+                }
+                if (iz < 0 || CELLSIZE <= iz)
+                {
+                    CellIndex ci = new CellIndex(index.X, index.Y, index.Z + SignDiv(iz, CELLSIZE));
+                    if (world.volume.ContainsKey(ci))
+                    {
+                        CellVolume cv = world.volume[ci];
+                        return cv.cell(ix, iy, SignModulo(iz, CELLSIZE));
+                    }
+                }
                 return ix < 0 || CELLSIZE <= ix || iy < 0 || CELLSIZE <= iy || iz < 0 || CELLSIZE <= iz ? new Cell(Cell.Type.Air) : v[ix, iy, iz];
             }
 
@@ -64,6 +106,7 @@ namespace xnatest
             /// <param name="ci">The position of new CellVolume</param>
             public void initialize(Vec3i ci)
             {
+                index = ci;
                 float[,] field = new float[CELLSIZE, CELLSIZE];
                 PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() { seed = 12321, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE }, new PerlinNoise.FieldAssign(field));
                 _solidcount = 0;
@@ -165,7 +208,7 @@ namespace xnatest
                                 SignDiv((i.index.Z + iz * CELLSIZE), CELLSIZE));
                             if (!_volume.ContainsKey(ci))
                             {
-                                CellVolume cv = new CellVolume();
+                                CellVolume cv = new CellVolume(this);
                                 cv.initialize(ci);
                                 _volume.Add(ci, cv);
                             }

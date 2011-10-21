@@ -139,7 +139,7 @@ namespace xnatest
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            world.volume.Add(new CellIndex(0, 0, 0), new CellVolume());
+            world.volume.Add(new CellIndex(0, 0, 0), new CellVolume(world));
             world.volume[new CellIndex(0, 0, 0)].initialize(new Vec3i(0,0,0));
             player = new Player(world);
 
