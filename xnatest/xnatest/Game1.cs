@@ -322,7 +322,7 @@ namespace xnatest
 
             world.Update(gameTime.ElapsedGameTime.TotalSeconds);
 
-            logwriter.WriteLine("Update: dt = {0}, total = {1}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f, gameTime.TotalGameTime.TotalMilliseconds / 1000.0f);
+            logwriter.WriteLine("Update: dt = {0}, total = {1}, CellVolumes = {2}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f, gameTime.TotalGameTime.TotalMilliseconds / 1000.0f, world.volume.Count);
             logwriter.Close();
             logwriter = null;
 

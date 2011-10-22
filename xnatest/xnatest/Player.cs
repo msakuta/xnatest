@@ -95,6 +95,11 @@ namespace xnatest
         public const float walkSpeed = 2.0f;
 
         /// <summary>
+        /// Run speed, [meters per second]
+        /// </summary>
+        public const float runSpeed = 5.0f;
+
+        /// <summary>
         /// Called every frame
         /// </summary>
         /// <param name="dt">Delta-time</param>
@@ -127,7 +132,7 @@ namespace xnatest
             if (ks.IsKeyDown(Keys.NumPad2))
                 pitch -= dt;
             if (ks.IsKeyDown(Keys.W))
-                trymove(new Vector3(0, 0, -walkSpeed * dt));
+                trymove(new Vector3(0, 0, (ks.IsKeyDown(Keys.LeftShift) || ks.IsKeyDown(Keys.RightShift) ? runSpeed : walkSpeed) * -dt));
             if (ks.IsKeyDown(Keys.S))
                 trymove(new Vector3(0, 0, walkSpeed * dt));
             if (ks.IsKeyDown(Keys.A))
