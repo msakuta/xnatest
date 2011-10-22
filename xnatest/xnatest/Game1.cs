@@ -139,8 +139,8 @@ namespace xnatest
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            world.volume.Add(new CellIndex(0, 0, 0), new CellVolume(world));
-            world.volume[new CellIndex(0, 0, 0)].initialize(new Vec3i(0,0,0));
+//            world.volume.Add(new CellIndex(0, 0, 0), new CellVolume(world));
+//            world.volume[new CellIndex(0, 0, 0)].initialize(new Vec3i(0,0,0));
             player = new Player(world);
 
             float tilt = MathHelper.ToRadians(0);  // 0 degree angle
@@ -286,6 +286,8 @@ namespace xnatest
 
         Vector2 spriteSpeed = new Vector2(100, 0);
 
+        static System.IO.StreamWriter logwriter;
+
         /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
@@ -293,6 +295,7 @@ namespace xnatest
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            logwriter = new System.IO.StreamWriter("xnatest.log", true);
             spritePosition += spriteSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             int MaxX = graphics.GraphicsDevice.Viewport.Width - myTexture.Width;
@@ -319,6 +322,10 @@ namespace xnatest
 
             world.Update(gameTime.ElapsedGameTime.TotalSeconds);
 
+            logwriter.WriteLine("Update: dt = {0}, total = {1}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f, gameTime.TotalGameTime.TotalMilliseconds / 1000.0f);
+            logwriter.Close();
+            logwriter = null;
+
             base.Update(gameTime);
         }
 
@@ -328,11 +335,15 @@ namespace xnatest
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
+            CellVolume.cellInvokes = 0;
+            CellVolume.cellForeignInvokes = 0;
+            CellVolume.cellForeignExists = 0;
+            logwriter = new System.IO.StreamWriter("xnatest.log", true);
             /*
-            const double dist = 16.0;
-            double phase = gameTime.TotalGameTime.TotalMilliseconds / 1000.0;
-            basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(dist * Math.Cos(phase)), (float)(dist * (Math.Sin(phase / 10.0) + 1.0) / 2.0), (float)(dist * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
-             */
+             const double dist = 16.0;
+             double phase = gameTime.TotalGameTime.TotalMilliseconds / 1000.0;
+             basicEffect.View = Matrix.CreateLookAt(new Vector3((float)(dist * Math.Cos(phase)), (float)(dist * (Math.Sin(phase / 10.0) + 1.0) / 2.0), (float)(dist * Math.Sin(phase))), Vector3.Zero, Vector3.Up);
+              */
 
             // Obtaininig a conjugate requires a local varable declared, which is silly.
             Quaternion qrot = player.getRot();
@@ -367,10 +378,36 @@ namespace xnatest
                     continue;
                 if (inf.index.Z < kv.Key.Z * CELLSIZE - maxViewDistance)
                     continue;
-                for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
-                                DrawInternal(kv, ix, iy, iz, inf);
+                for (int ix = 0; ix < CELLSIZE; ix++) for (int iz = 0; iz < CELLSIZE; iz++)
+                    {
+                        for (int iy = kv.Value.scanLines[ix, iz, 0]; iy <= kv.Value.scanLines[ix, iz, 1]; iy++)
+                            DrawInternal(kv, ix, iy, iz, inf);
+                    }
+/*                for (int ix = 1; ix < CELLSIZE - 1; ix++) for (int iz = 1; iz < CELLSIZE - 1; iz++)
+                    {
+                        for (int iy = 0; iy < CELLSIZE; iy += CELLSIZE-1)
+                            DrawInternal(kv, ix, iy, iz, inf);
+                    }
+                for (int ix = 1; ix < CELLSIZE - 1; ix++) for (int iy = 1; iy < CELLSIZE - 1; iy++)
+                    {
+                        for (int iz = 0; iz < CELLSIZE; iz += CELLSIZE-1)
+                            DrawInternal(kv, ix, iy, iz, inf);
+                    }
+                for (int iz = 1; iz < CELLSIZE - 1; iz++) for (int iy = 1; iy < CELLSIZE - 1; iy++)
+                    {
+                        for (int ix = 0; ix < CELLSIZE; ix += CELLSIZE-1)
+                            DrawInternal(kv, ix, iy, iz, inf);
+                    }*/
             }
 #endif
+
+            logwriter.WriteLine("draw time = {0}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f);
+            logwriter.WriteLine("cellInvokes = {0}", CellVolume.cellInvokes);
+            logwriter.WriteLine("cellForeignInvokes = {0}", CellVolume.cellForeignInvokes);
+            logwriter.WriteLine("cellForeignExists = {0}", CellVolume.cellForeignExists);
+            logwriter.Close();
+            logwriter = null;
+
             base.Draw(gameTime);
         }
 

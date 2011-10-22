@@ -49,5 +49,30 @@ namespace xnatest
         {
             return new Vector3(X, Y, Z);
         }
+
+        public bool Equals(Vec3i o)
+        {
+            return X == o.X && Y == o.Y && Z == o.Z;
+        }
+
+        public static bool operator ==(Vec3i a, Vec3i b)
+        {
+            return a.X == b.X && a.Y == b.Y && a.Z == b.Z;
+        }
+
+        public static bool operator !=(Vec3i a, Vec3i b)
+        {
+            return !a.Equals(b);
+        }
+
+        public override int GetHashCode()
+        {
+            return (112116 ^ X) * (56549791 ^ Y) * (45890174 ^ Z);
+        }
+
+        public static explicit operator string(Vec3i v)
+        {
+            return string.Format("({0},{1},{2})", v.X, v.Y, v.Z);
+        }
     }
 }

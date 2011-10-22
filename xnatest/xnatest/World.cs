@@ -38,17 +38,43 @@ namespace xnatest
         /// </summary>
         public class CellVolume
         {
-            CellIndex index;
+            /// <summary>
+            /// Indicating where this CellVolume resides in coordinates.
+            /// </summary>
+            CellIndex _index;
+            public CellIndex index { get { return _index; } }
+
+            /// <summary>
+            /// The global World pointer.
+            /// </summary>
             World world;
             Cell[, ,] v = new Cell[CELLSIZE, CELLSIZE, CELLSIZE];
+            
+            /// <summary>
+            /// Indices are in order of [X, Z, beginning and end]
+            /// </summary>
+            int[,,] _scanLines = new int[CELLSIZE, CELLSIZE, 2];
+
+            public int[, ,] scanLines { get { return _scanLines; } }
+
             int _solidcount = 0;
 
+            /// <summary>
+            /// Pointer to adjacent CellVolumes for caching.
+            /// </summary>
+//            CellVolume[] neighbors = new CellVolume[6];
+
+            
             public CellVolume(World world) { this.world = world; }
 
             /// <summary>
             /// Count of solid Cells in this CellVolume.
             /// </summary>
             public int solidcount { get { return _solidcount; } }
+
+            public static int cellInvokes = 0;
+            public static int cellForeignInvokes = 0;
+            public static int cellForeignExists = 0;
 
             /// <summary>
             /// Retrieves specific Cell in this CellVolume
@@ -58,7 +84,7 @@ namespace xnatest
             ///
             /// Note that even if two or more indices are out of range, this function will find the correct Cell
             /// by recursively calling itself in turn with each axes.
-            /// But what's the difference between this and World::cell(), you may ask. That's the key for the next
+            /// But what's the difference between this and World.cell(), you may ask. That's the key for the next
             /// step of optimization.
             /// 
             /// I've felt it's significantly sensitive to algorithm's complexity compared to C++ equivalent code.
@@ -70,32 +96,55 @@ namespace xnatest
             /// <returns>Cell object</returns>
             public Cell cell(int ix, int iy, int iz)
             {
+                cellInvokes += 1;
                 if (ix < 0 || CELLSIZE <= ix)
                 {
+                    cellForeignInvokes += 1;
+/*                    int nx = index.X + SignDiv(ix, CELLSIZE);
+                    if (nx == index.X - 1 && neighbors[0] != null)
+                        return neighbors[0].cell(SignModulo(ix, CELLSIZE), iy, iz);
+                    else if (nx == index.X + 1 && neighbors[1] != null)
+                        return neighbors[1].cell(SignModulo(ix, CELLSIZE), iy, iz);*/
                     CellIndex ci = new CellIndex(index.X + SignDiv(ix, CELLSIZE), index.Y, index.Z);
                     if (world.volume.ContainsKey(ci))
                     {
+                        cellForeignExists += 1;
                         CellVolume cv = world.volume[ci];
                         return cv.cell(SignModulo(ix, CELLSIZE), iy, iz);
                     }
+                    else
+                        return cell(ix < 0 ? 0 : CELLSIZE - 1, iy, iz);
                 }
                 if (iy < 0 || CELLSIZE <= iy)
                 {
+                    cellForeignInvokes += 1;
+/*                    int ny = index.Y + SignDiv(iy, CELLSIZE);
+                    if (ny == index.Y - 1 && neighbors[2] != null)
+                        return neighbors[2].cell(ix, SignModulo(iy, CELLSIZE), iz);
+                    else if (ny == index.Y + 1 && neighbors[3] != null)
+                        return neighbors[3].cell(ix, SignModulo(iy, CELLSIZE), iz);*/
                     CellIndex ci = new CellIndex(index.X, index.Y + SignDiv(iy, CELLSIZE), index.Z);
                     if (world.volume.ContainsKey(ci))
                     {
+                        cellForeignExists += 1;
                         CellVolume cv = world.volume[ci];
                         return cv.cell(ix, SignModulo(iy, CELLSIZE), iz);
                     }
+                    else
+                        return cell(ix, iy < 0 ? 0 : CELLSIZE - 1, iz);
                 }
                 if (iz < 0 || CELLSIZE <= iz)
                 {
+                    cellForeignInvokes += 1;
                     CellIndex ci = new CellIndex(index.X, index.Y, index.Z + SignDiv(iz, CELLSIZE));
                     if (world.volume.ContainsKey(ci))
                     {
+                        cellForeignExists += 1;
                         CellVolume cv = world.volume[ci];
                         return cv.cell(ix, iy, SignModulo(iz, CELLSIZE));
                     }
+                    else
+                        return cell(ix, iy, iz < 0 ? 0 : CELLSIZE - 1);
                 }
                 return ix < 0 || CELLSIZE <= ix || iy < 0 || CELLSIZE <= iy || iz < 0 || CELLSIZE <= iz ? new Cell(Cell.Type.Air) : v[ix, iy, iz];
             }
@@ -106,7 +155,7 @@ namespace xnatest
             /// <param name="ci">The position of new CellVolume</param>
             public void initialize(Vec3i ci)
             {
-                index = ci;
+                _index = ci;
                 float[,] field = new float[CELLSIZE, CELLSIZE];
                 PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() { seed = 12321, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE }, new PerlinNoise.FieldAssign(field));
                 _solidcount = 0;
@@ -116,21 +165,56 @@ namespace xnatest
                             if (v[ix, iy, iz].type != Cell.Type.Air)
                                 _solidcount++;
                         }
+            }
+
+            public void updateCache()
+            {
+/*                CellIndex ci = new CellIndex(index.X - 1, index.Y, index.Z);
+                neighbors[0] = world.volume.ContainsKey(ci) ? world.volume[ci] : null;
+                ci = new CellIndex(index.X + 1, index.Y, index.Z);
+                neighbors[1] = world.volume.ContainsKey(ci) ? world.volume[ci] : null;
+                ci = new CellIndex(index.X, index.Y - 1, index.Z);
+                neighbors[2] = world.volume.ContainsKey(ci) ? world.volume[ci] : null;
+                ci = new CellIndex(index.X, index.Y + 1, index.Z);
+                neighbors[3] = world.volume.ContainsKey(ci) ? world.volume[ci] : null;*/
+
                 for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
                         {
                             updateAdj(ix, iy, iz);
                         }
+                
+                // Build up scanline map
+                for (int ix = 0; ix < CELLSIZE; ix++) for (int iz = 0; iz < CELLSIZE; iz++)
+                    {
+                        // Find start and end points for this scan line
+                        bool begun = false;
+                        for (int iy = 0; iy < CELLSIZE; iy++)
+                        {
+                            Cell c = v[ix, iy, iz];
+                            if (c.adjacents != 0 && c.type == Cell.Type.Air
+                                || c.adjacents != 6 && c.type != Cell.Type.Air
+                                || c.adjacents != 0 && c.adjacents != 6)
+                            {
+                                if (!begun)
+                                {
+                                    begun = true;
+                                    scanLines[ix, iz, 0] = iy;
+                                }
+                                scanLines[ix, iz, 1] = iy;
+                            }
+                        }
+                    }
             }
 
             void updateAdj(int ix, int iy, int iz)
             {
                 v[ix, iy, iz].adjacents =
-                    (0 < ix && v[ix - 1, iy, iz].type != Cell.Type.Air ? 1 : 0) +
-                    (ix < CELLSIZE - 1 && v[ix + 1, iy, iz].type != Cell.Type.Air ? 1 : 0) +
-                    (0 < iy && v[ix, iy - 1, iz].type != Cell.Type.Air ? 1 : 0) +
-                    (iy < CELLSIZE - 1 && v[ix, iy + 1, iz].type != Cell.Type.Air ? 1 : 0) +
-                    (0 < iz && v[ix, iy, iz - 1].type != Cell.Type.Air ? 1 : 0) +
-                    (iz < CELLSIZE - 1 && v[ix, iy, iz + 1].type != Cell.Type.Air ? 1 : 0);
+                    (cell(ix - 1, iy, iz).type != Cell.Type.Air ? 1 : 0) +
+                    (cell(ix + 1, iy, iz).type != Cell.Type.Air ? 1 : 0) +
+                    (cell(ix, iy - 1, iz).type != Cell.Type.Air ? 1 : 0) +
+                    (cell(ix, iy + 1, iz).type != Cell.Type.Air ? 1 : 0) +
+                    (cell(ix, iy, iz - 1).type != Cell.Type.Air ? 1 : 0) +
+                    (cell(ix, iy, iz + 1).type != Cell.Type.Air ? 1 : 0);
             }
 
             public bool isSolid(Vec3i ipos)
@@ -193,12 +277,31 @@ namespace xnatest
                     return false;
             }
 
+            void tryadd(System.Collections.Generic.HashSet<CellVolume> set, CellIndex ci)
+            {
+                if (_volume.ContainsKey(ci))
+                    set.Add(_volume[ci]);
+            }
+
+            class CellVolumeComp : System.Collections.Generic.IEqualityComparer<CellVolume>
+            {
+                public bool Equals(CellVolume a, CellVolume b)
+                {
+                    return a.index == b.index;
+                }
+                public int GetHashCode(CellVolume cv)
+                {
+                    return cv.index.GetHashCode();
+                }
+            }
+
             /// <summary>
             /// Called every frame.
             /// </summary>
             /// <param name="dt">Delta-time</param>
             public void Update(double dt)
             {
+                System.Collections.Generic.HashSet<CellVolume> changed = new HashSet<CellVolume>(new CellVolumeComp());
                 IndFrac i = real2ind(game.player.getPos());
                 for (int ix = -2; ix <= 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = -2; iz <= 2; iz++)
                         {
@@ -211,8 +314,21 @@ namespace xnatest
                                 CellVolume cv = new CellVolume(this);
                                 cv.initialize(ci);
                                 _volume.Add(ci, cv);
+                                changed.Add(cv);
+/*                                tryadd(changed, new CellIndex(ix - 1, iy, iz));
+                                tryadd(changed, new CellIndex(ix + 1, iy, iz));
+                                tryadd(changed, new CellIndex(ix, iy - 1, iz));
+                                tryadd(changed, new CellIndex(ix, iy + 1, iz));
+                                tryadd(changed, new CellIndex(ix, iy, iz - 1));
+                                tryadd(changed, new CellIndex(ix, iy, iz + 1));*/
                             }
                         }
+
+                foreach (CellVolume v in changed)
+                {
+                    v.updateCache();
+                    logwriter.WriteLine("hash {1}: {0}", (string)v.index, v.index.GetHashCode());
+                }
             }
         }
 

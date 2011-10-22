@@ -11,6 +11,36 @@ namespace xnatest
     class PerlinNoise
     {
         /// <summary>
+        /// The hand-made pseudo-random number sequence generator.
+        /// </summary>
+        /// <remarks>
+        /// It's not really advanced technique, just a pair of multiply-with-carry random sequence generators.
+        /// It's statically unsafe, but fast to initialize and prone to the seed's bias.
+        /// 
+        /// The interface resembles System.Random's one.
+        /// </remarks>
+        public struct Random
+        {
+            private uint w, z;
+            public Random(uint seed1, uint seed2 = 0)
+            {
+                w = ((z = seed1) ^ 123459876) * 123459871;
+                z += ((w += seed2) ^ 1534241562) * 123459876;
+            }
+
+            /// <summary>
+            /// Retrieve a number and advance the sequence.
+            /// </summary>
+            /// <param name="max">Ought to be maximum range of returned number, but it's ignored here.</param>
+            /// <returns>Always in range [0, 256).</returns>
+            public uint Next(int max)
+            {
+                uint u = (((z = 36969 * (z & 65535) + (z >> 16)) << 16) + (w = 18000 * (w & 65535) + (w >> 16)));
+                return (u >> 8) & 0xf0 + (u & 0xf);
+            }
+        }
+
+        /// <summary>
         /// Callback object that receives result of perlin_noise
         /// </summary>
         /// We do this because not all application needs temporary memry to store the result.
@@ -42,7 +72,7 @@ namespace xnatest
         {
             public long seed = 0; ///< Random seed
             public long cellsize = 16; ///< Size of the one edge of the square area.
-            public int octaves = 4; ///< Number of octabes to accumulate the noise in.
+            public int octaves = 4; ///< Number of octaves to accumulate the noise in.
             public double persistence = 0.5; ///< Persistence of the argument.
             public int xofs = 0, yofs = 0; ///< Offsets for each axes.
         }
@@ -79,7 +109,7 @@ namespace xnatest
                 {
                     for (xi = 0; xi < cellsize; xi++) for (yi = 0; yi < cellsize; yi++)
                         {
-                            Random rs = new Random((int)(seed ^ (xi + param.xofs) + ((yi + param.yofs) << 16)));
+                            Random rs = new Random((uint)(seed ^ (xi + param.xofs) + ((yi + param.yofs) << 16)));
                             work2[xi, yi] = (int)(rs.Next(baseMax) * factor);
                         }
                 }
@@ -93,7 +123,7 @@ namespace xnatest
                             double sum = 0;
                             for (xj = 0; xj <= 1; xj++) for (yj = 0; yj <= 1; yj++)
                                 {
-                                    Random rs = new Random((int)(seed ^ (xsd + xj) + ((ysd + yj) << 16)));
+                                    Random rs = new Random((uint)(seed ^ (xsd + xj) + ((ysd + yj) << 16)));
                                     sum += (double)rs.Next(baseMax)
                                         * (xj != 0 ? xsm : (cell - xsm - 1)) / (double)cell
                                         * (yj != 0 ? ysm : (cell - ysm - 1)) / (double)cell;
