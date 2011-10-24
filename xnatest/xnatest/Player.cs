@@ -157,6 +157,18 @@ namespace xnatest
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.C) && ks.IsKeyUp(Keys.C))
                 moveMode = moveMode == MoveMode.Ghost ? MoveMode.Walk : MoveMode.Ghost;
 
+            // Dig the cell forward
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.T) && ks.IsKeyUp(Keys.T))
+            {
+                Vector3 dir = Vector3.Transform(Vector3.Forward, rot);
+                for (int i = 0; i < 8; i++)
+                {
+                    Vec3i ci = Game1.real2ind(pos + dir * i / 2).index;
+                    if (world.isSolid(ci.X, ci.Y, ci.Z) && world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(Game1.Cell.Type.Air)))
+                        break;
+                }
+            }
+
             oldKeys = ks;
 
             updateRot();

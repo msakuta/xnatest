@@ -150,6 +150,41 @@ namespace xnatest
             }
 
             /// <summary>
+            /// Replace a Cell in a CellVolume with new one.
+            /// </summary>
+            /// <remarks>
+            /// Adjacent cells will get cache data updated.
+            /// </remarks>
+            /// <param name="ix"></param>
+            /// <param name="iy"></param>
+            /// <param name="iz"></param>
+            /// <param name="newCell">The new Cell to replace with.</param>
+            /// <returns>Modified</returns>
+            public bool setCell(int ix, int iy, int iz, Cell newCell)
+            {
+                if (ix < 0 || CELLSIZE <= ix || iy < 0 || CELLSIZE <= iy || iz < 0 || CELLSIZE <= iz)
+                    return false;
+                else
+                {
+                    v[ix, iy, iz] = newCell;
+                    updateCache();
+                    if (ix <= 0)
+                        world.volume[new Vec3i(index.X - 1, index.Y, index.Z)].updateCache();
+                    else if(CELLSIZE - 1 <= ix)
+                        world.volume[new Vec3i(index.X + 1, index.Y, index.Z)].updateCache();
+                    if (iy <= 0)
+                        world.volume[new Vec3i(index.X, index.Y - 1, index.Z)].updateCache();
+                    else if (CELLSIZE - 1 <= iy)
+                        world.volume[new Vec3i(index.X, index.Y + 1, index.Z)].updateCache();
+                    if (iz <= 0)
+                        world.volume[new Vec3i(index.X, index.Y, index.Z - 1)].updateCache();
+                    else if (CELLSIZE - 1 <= iz)
+                        world.volume[new Vec3i(index.X, index.Y, index.Z + 1)].updateCache();
+                    return true;
+                }
+            }
+
+            /// <summary>
             /// Initialize this CellVolume with Perlin Noise with given position index.
             /// </summary>
             /// <param name="ci">The position of new CellVolume</param>
@@ -254,6 +289,25 @@ namespace xnatest
                 return new Cell(Cell.Type.Air);
             }
 
+            /// <summary>
+            /// Replace a Cell in a CellVolume in a World.
+            /// </summary>
+            /// <remarks>
+            /// Internally calls CellVolume.setCell().
+            /// </remarks>
+            /// <param name="ix"></param>
+            /// <param name="iy"></param>
+            /// <param name="iz"></param>
+            /// <param name="newCell">The new Cell to replace with.</param>
+            /// <returns>True if successful</returns>
+            public bool setCell(int ix, int iy, int iz, Cell newCell)
+            {
+                CellVolume cv = _volume[new CellIndex(SignDiv(ix, CELLSIZE), SignDiv(iy, CELLSIZE), SignDiv(iz, CELLSIZE))];
+                if (cv != null)
+                    return cv.setCell(SignModulo(ix, CELLSIZE), SignModulo(iy, CELLSIZE), SignModulo(iz, CELLSIZE), newCell);
+                return false;
+            }
+
             public bool isSolid(Vec3i v)
             {
                 return isSolid(v.X, v.Y, v.Z);
@@ -303,7 +357,8 @@ namespace xnatest
             {
                 System.Collections.Generic.HashSet<CellVolume> changed = new HashSet<CellVolume>(new CellVolumeComp());
                 IndFrac i = real2ind(game.player.getPos());
-                for (int ix = -2; ix <= 2; ix++) for (int iy = 0; iy < 2; iy++) for (int iz = -2; iz <= 2; iz++)
+                int radius = game.maxViewDistance / CELLSIZE;
+                for (int ix = -radius; ix <= radius; ix++) for (int iy = -radius; iy < radius; iy++) for (int iz = -radius; iz <= radius; iz++)
                         {
                             CellIndex ci = new CellIndex(
                                 SignDiv((i.index.X + ix * CELLSIZE), CELLSIZE),
