@@ -21,6 +21,7 @@ namespace xnatest
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
+        SpriteFont spriteFont;
 
         Matrix worldMatrix;
         Matrix viewMatrix;
@@ -129,6 +130,8 @@ namespace xnatest
         {
             return new Vector3(x, y, z);
         }
+
+        VertexBuffer vb;
 
         /// <summary>
         /// Allows the game to perform any initialization it needs to before starting to run.
@@ -248,7 +251,7 @@ namespace xnatest
                 new VertexPositionNormalTexture(tt3[0, 0, 0], V3(-1, 0, 0), V2(0, 0)),
             };
 
-            VertexBuffer vb = new VertexBuffer(graphics.GraphicsDevice, vertexDeclaration, cubeVertices.Length, BufferUsage.None);
+            vb = new VertexBuffer(graphics.GraphicsDevice, vertexDeclaration, cubeVertices.Length, BufferUsage.None);
             vb.SetData(cubeVertices);
             graphics.GraphicsDevice.SetVertexBuffer(vb);
 
@@ -270,6 +273,7 @@ namespace xnatest
 
             // TODO: use this.Content to load your game content here
             myTexture = Content.Load<Texture2D>("grass");
+            spriteFont = Content.Load<SpriteFont>("SpriteFont1");
 
             basicEffect.TextureEnabled = true;
             basicEffect.Texture = myTexture;
@@ -357,6 +361,12 @@ namespace xnatest
             spriteBatch.Draw(myTexture, spritePosition, Color.White);
             spriteBatch.End();
 #else
+            // The stencil buffer could be disabled because of text rendering.
+            graphics.GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+
+            // Make sure that the vertex buffer for the cube is loaded.
+            graphics.GraphicsDevice.SetVertexBuffer(vb);
+
             IndFrac inf = real2ind(player.getPos());
             RasterizerState rasterizerState1 = new RasterizerState();
             rasterizerState1.CullMode = CullMode.CullClockwiseFace;
@@ -400,6 +410,17 @@ namespace xnatest
                     }*/
             }
 #endif
+
+            // Drawing debug texts
+            int y = 0;
+            spriteBatch.Begin();
+            spriteBatch.DrawString(spriteFont, string.Format("Draw time = {0}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f), new Vector2(0, y), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("pos = {0}", player.getPos()), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("CellVolumes = {0}", world.volume.Count), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("cellInvokes = {0}", CellVolume.cellInvokes), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("cellForeignInvokes = {0}", CellVolume.cellForeignInvokes), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("cellForeignExists = {0}", CellVolume.cellForeignExists), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.End();
 
             logwriter.WriteLine("draw time = {0}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f);
             logwriter.WriteLine("cellInvokes = {0}", CellVolume.cellInvokes);
