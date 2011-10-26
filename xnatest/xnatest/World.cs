@@ -166,6 +166,11 @@ namespace xnatest
                     return false;
                 else
                 {
+                    // Update solidcount by difference of solidity before and after cell assignment.
+                    int before = v[ix, iy, iz].type == Cell.Type.Air ? 0 : 1;
+                    int after = newCell.type == Cell.Type.Air ? 0 : 1;
+                    _solidcount += after - before;
+
                     v[ix, iy, iz] = newCell;
                     updateCache();
                     if (ix <= 0)
@@ -330,6 +335,21 @@ namespace xnatest
                 else
                     return false;
             }
+
+            /// <summary>
+            /// Returns sum of all solid cell counts in CellVolumes in this World.
+            /// </summary>
+            public int solidcount{
+                get{
+                    int count = 0;
+                    foreach(System.Collections.Generic.KeyValuePair<CellIndex, CellVolume> kv in volume)
+                    {
+                        count += kv.Value.solidcount;
+                    }
+                    return count;
+                }
+            }
+
 
             void tryadd(System.Collections.Generic.HashSet<CellVolume> set, CellIndex ci)
             {

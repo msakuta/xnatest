@@ -69,6 +69,8 @@ namespace xnatest
 
         KeyboardState oldKeys;
 
+        public int bricks{get; set;}
+
         /// <summary>
         /// Half-size of the Player along X axis.
         /// </summary>
@@ -98,6 +100,15 @@ namespace xnatest
         /// Run speed, [meters per second]
         /// </summary>
         public const float runSpeed = 5.0f;
+
+        static Vec3i[] directions = new Vec3i[]{
+            new Vec3i(-1,  0,  0),
+            new Vec3i( 1,  0,  0),
+            new Vec3i( 0, -1,  0),
+            new Vec3i( 0,  1,  0),
+            new Vec3i( 0,  0, -1),
+            new Vec3i( 0,  0,  1),
+        };
 
         /// <summary>
         /// Called every frame
@@ -165,7 +176,52 @@ namespace xnatest
                 {
                     Vec3i ci = Game1.real2ind(pos + dir * i / 2).index;
                     if (world.isSolid(ci.X, ci.Y, ci.Z) && world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(Game1.Cell.Type.Air)))
+                    {
+                        bricks += 1;
                         break;
+                    }
+                }
+            }
+
+            // Place a solid cell next to another solid cell.
+            // Feasible only if the player has a brick.
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.G) && ks.IsKeyUp(Keys.G) && 0 < bricks)
+            {
+                Vector3 dir = Vector3.Transform(Vector3.Forward, rot);
+                for (int i = 0; i < 8; i++)
+                {
+                    Vec3i ci = Game1.real2ind(pos + dir * i / 2).index;
+
+                    if(world.isSolid(ci.X, ci.Y, ci.Z))
+                        continue;
+
+                    bool buried = false;
+                    for (int ix = 0; ix < 2 && !buried; ix++) for (int iz = 0; iz < 2 && !buried; iz++) for (int iy = 0; iy < 2 && !buried; iy++)
+                            {
+                                // Position to check collision with the walls
+                                Vector3 hitcheck = new Vector3(pos.X + (ix * 2 - 1) * boundWidth, pos.Y - eyeHeight + iy * boundHeight, pos.Z + (iz * 2 - 1) * boundLength);
+
+                                if(ci == Game1.real2ind(hitcheck))
+                                    buried = true;
+                            }
+                    if (buried)
+                        continue;
+
+                    bool supported = false;
+                    for(int j = 0; j < directions.Length; j++)
+                        if (world.isSolid(ci + directions[j]))
+                        {
+                            supported = true;
+                            break;
+                        }
+                    if (!supported)
+                        continue;
+
+                    if (world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(Game1.Cell.Type.Grass)))
+                    {
+                        bricks -= 1;
+                        break;
+                    }
                 }
             }
 

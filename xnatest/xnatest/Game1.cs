@@ -417,6 +417,8 @@ namespace xnatest
             spriteBatch.DrawString(spriteFont, string.Format("Draw time = {0}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f), new Vector2(0, y), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("pos = {0}", player.getPos()), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("CellVolumes = {0}", world.volume.Count), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("Bricks = {0}", player.bricks), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("WorldSolids = {0}", world.solidcount), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("cellInvokes = {0}", CellVolume.cellInvokes), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("cellForeignInvokes = {0}", CellVolume.cellForeignInvokes), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("cellForeignExists = {0}", CellVolume.cellForeignExists), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
