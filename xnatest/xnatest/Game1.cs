@@ -367,6 +367,8 @@ namespace xnatest
             // Make sure that the vertex buffer for the cube is loaded.
             graphics.GraphicsDevice.SetVertexBuffer(vb);
 
+            BoundingFrustum bf = new BoundingFrustum(basicEffect.View * basicEffect.Projection);
+
             IndFrac inf = real2ind(player.getPos());
             RasterizerState rasterizerState1 = new RasterizerState();
             rasterizerState1.CullMode = CullMode.CullClockwiseFace;
@@ -375,6 +377,14 @@ namespace xnatest
             {
                 if (kv.Value.solidcount == 0)
                     continue;
+
+                Vec3i keyindex = kv.Key * CELLSIZE;
+                
+                // Cull by bounding box and viewing frustum
+                BoundingBox bb = new BoundingBox(ind2real(keyindex), ind2real((kv.Key + new Vec3i(1, 1, 1)) * CELLSIZE));
+                if (bf.Contains(bb) == ContainmentType.Disjoint)
+                    continue;
+
                 // Cull too far CellVolumes
                 if ((kv.Key.X + 1) * CELLSIZE + maxViewDistance < inf.index.X)
                     continue;
@@ -390,24 +400,11 @@ namespace xnatest
                     continue;
                 for (int ix = 0; ix < CELLSIZE; ix++) for (int iz = 0; iz < CELLSIZE; iz++)
                     {
+                        // This detail culling is not much effective.
+                        //if (bf.Contains(new BoundingBox(ind2real(keyindex + new Vec3i(ix, kv.Value.scanLines[ix, iz, 0], iz)), ind2real(keyindex + new Vec3i(ix + 1, kv.Value.scanLines[ix, iz, 1] + 1, iz + 1)))) != ContainmentType.Disjoint)
                         for (int iy = kv.Value.scanLines[ix, iz, 0]; iy <= kv.Value.scanLines[ix, iz, 1]; iy++)
                             DrawInternal(kv, ix, iy, iz, inf);
                     }
-/*                for (int ix = 1; ix < CELLSIZE - 1; ix++) for (int iz = 1; iz < CELLSIZE - 1; iz++)
-                    {
-                        for (int iy = 0; iy < CELLSIZE; iy += CELLSIZE-1)
-                            DrawInternal(kv, ix, iy, iz, inf);
-                    }
-                for (int ix = 1; ix < CELLSIZE - 1; ix++) for (int iy = 1; iy < CELLSIZE - 1; iy++)
-                    {
-                        for (int iz = 0; iz < CELLSIZE; iz += CELLSIZE-1)
-                            DrawInternal(kv, ix, iy, iz, inf);
-                    }
-                for (int iz = 1; iz < CELLSIZE - 1; iz++) for (int iy = 1; iy < CELLSIZE - 1; iy++)
-                    {
-                        for (int ix = 0; ix < CELLSIZE; ix += CELLSIZE-1)
-                            DrawInternal(kv, ix, iy, iz, inf);
-                    }*/
             }
 #endif
 

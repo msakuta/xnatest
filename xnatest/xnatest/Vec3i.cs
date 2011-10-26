@@ -45,6 +45,14 @@ namespace xnatest
             return a + new Vec3i(-b.X, -b.Y, -b.Z);
         }
 
+        /// <summary>
+        /// Scale
+        /// </summary>
+        public static Vec3i operator *(Vec3i a, int v)
+        {
+            return new Vec3i(a.X * v, a.Y * v, a.Z * v);
+        }
+
         public Vector3 cast()
         {
             return new Vector3(X, Y, Z);
