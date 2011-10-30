@@ -225,6 +225,30 @@ namespace xnatest
                 }
             }
 
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.K) && ks.IsKeyUp(Keys.K))
+            {
+                System.IO.FileStream fs = new System.IO.FileStream("save.sav", System.IO.FileMode.Create);
+                System.IO.BinaryWriter bw = new System.IO.BinaryWriter(fs);
+                System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                // System.IO.BinaryWriter bw = new System.IO.BinaryWriter(bw, System.IO.FileMode.OpenOrCreate);
+                serialize(bw);
+                world.serialize(bw);
+                fs.Close();
+//                bf.Serialize(fs, world);
+            }
+
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.L) && ks.IsKeyUp(Keys.L))
+            {
+                System.IO.FileStream fs = new System.IO.FileStream("save.sav", System.IO.FileMode.Open);
+                System.IO.BinaryReader br = new System.IO.BinaryReader(fs);
+                System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                // System.IO.BinaryWriter bw = new System.IO.BinaryWriter(bw, System.IO.FileMode.OpenOrCreate);
+                unserialize(br);
+                world.unserialize(br);
+                fs.Close();
+                //                bf.Serialize(fs, world);
+            }
+
             oldKeys = ks;
 
             updateRot();
@@ -282,6 +306,56 @@ namespace xnatest
 
             pos = dest;
             return false;
+        }
+
+        static void serializeVector3(System.IO.BinaryWriter bw, Vector3 v)
+        {
+            bw.Write(v.X);
+            bw.Write(v.Y);
+            bw.Write(v.Z);
+        }
+
+        static void unserializeVector3(System.IO.BinaryReader br, ref Vector3 v)
+        {
+            v.X = br.ReadSingle();
+            v.Y = br.ReadSingle();
+            v.Z = br.ReadSingle();
+        }
+
+        static void serializeQuat(System.IO.BinaryWriter bw, Quaternion q)
+        {
+            bw.Write(q.W);
+            bw.Write(q.X);
+            bw.Write(q.Y);
+            bw.Write(q.Z);
+        }
+
+        static void unserializeQuat(System.IO.BinaryReader br, ref Quaternion q)
+        {
+            q.W = br.ReadSingle();
+            q.X = br.ReadSingle();
+            q.Y = br.ReadSingle();
+            q.Z = br.ReadSingle();
+        }
+
+        void serialize(System.IO.BinaryWriter bw)
+        {
+            serializeVector3(bw, pos);
+            serializeVector3(bw, velo);
+            bw.Write(pitch);
+            bw.Write(yaw);
+            serializeQuat(bw, rot);
+            serializeQuat(bw, desiredRot);
+        }
+
+        void unserialize(System.IO.BinaryReader br)
+        {
+            unserializeVector3(br, ref pos);
+            unserializeVector3(br, ref velo);
+            pitch = br.ReadDouble();
+            yaw = br.ReadDouble();
+            unserializeQuat(br, ref rot);
+            unserializeQuat(br, ref desiredRot);
         }
     }
 }

@@ -31,6 +31,18 @@ namespace xnatest
             private Type mtype;
             public Type type { get { return mtype; } }
             public int adjacents;
+
+            public void serialize(System.IO.BinaryWriter bw)
+            {
+                bw.Write((byte)mtype);
+                bw.Write((byte)adjacents);
+            }
+
+            public void unserialize(System.IO.BinaryReader br)
+            {
+                mtype = (Type)br.ReadByte();
+                adjacents = br.ReadByte();
+            }
         }
 
         /// <summary>
@@ -265,12 +277,33 @@ namespace xnatest
                     0 <= ipos.Z && ipos.Z < CELLSIZE &&
                     v[ipos.X, ipos.Y, ipos.Z].type != Cell.Type.Air;
             }
+
+            public void serialize(System.IO.BinaryWriter bw)
+            {
+                bw.Write(index.X);
+                bw.Write(index.Y);
+                bw.Write(index.Z);
+                bw.Write(_solidcount);
+                for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
+                            v[ix, iy, iz].serialize(bw);
+            }
+
+            public void unserialize(System.IO.BinaryReader br)
+            {
+                _index.X = br.ReadInt32();
+                _index.Y = br.ReadInt32();
+                _index.Z = br.ReadInt32();
+                _solidcount = br.ReadInt32();
+                for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
+                    v[ix, iy, iz].unserialize(br);
+            }
         }
 
         /// <summary>
         /// Type to represent a physical world. Merely a collection of CellVolumes.
         /// </summary>
-        public class World
+        [Serializable]
+        public class World : System.Runtime.Serialization.ISerializable
         {
             /// <summary>
             /// Reference to global world object
@@ -404,6 +437,42 @@ namespace xnatest
                     v.updateCache();
                     logwriter.WriteLine("hash {1}: {0}", (string)v.index, v.index.GetHashCode());
                 }
+            }
+
+            public void serialize(System.IO.BinaryWriter bw)
+            {
+                bw.Write(_volume.Count);
+                foreach (System.Collections.Generic.KeyValuePair<CellIndex, CellVolume> kv in _volume)
+                    kv.Value.serialize(bw);
+            }
+
+            public void unserialize(System.IO.BinaryReader br)
+            {
+                try
+                {
+                    _volume.Clear();
+                    int count = br.ReadInt32();
+                    for (int i = 0; i < count; i++)
+                    {
+                        CellVolume cv = new CellVolume(this);
+                        cv.unserialize(br);
+                        _volume.Add(cv.index, cv);
+                    }
+                    foreach(KeyValuePair<CellIndex, CellVolume> kv in _volume)
+                        kv.Value.updateCache();
+                }
+                catch(Exception e)
+                    {
+                        logwriter.WriteLine(e.ToString());
+                        return;
+                    }
+/*                foreach (System.Collections.Generic.KeyValuePair<CellIndex, CellVolume> kv in _volume)
+                    kv.Value.unserialize(br);**/
+            }
+
+            public void GetObjectData(System.Runtime.Serialization.SerializationInfo si, System.Runtime.Serialization.StreamingContext sc)
+            {
+                si.AddValue("_volume", _volume);
             }
         }
 
