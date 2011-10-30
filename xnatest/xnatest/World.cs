@@ -35,13 +35,13 @@ namespace xnatest
             public void serialize(System.IO.BinaryWriter bw)
             {
                 bw.Write((byte)mtype);
-                bw.Write((byte)adjacents);
+//                bw.Write((byte)adjacents);
             }
 
             public void unserialize(System.IO.BinaryReader br)
             {
                 mtype = (Type)br.ReadByte();
-                adjacents = br.ReadByte();
+//                adjacents = br.ReadByte();
             }
         }
 

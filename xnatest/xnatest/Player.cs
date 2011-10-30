@@ -19,9 +19,11 @@ namespace xnatest
         /// Reference to global world object
         /// </summary>
         Game1.World world;
+        Game1 game;
 
-        public Player(Game1.World theworld)
+        public Player(Game1 thegame, Game1.World theworld)
         {
+            game = thegame;
             world = theworld;
         }
 
@@ -227,26 +229,34 @@ namespace xnatest
 
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.K) && ks.IsKeyUp(Keys.K))
             {
-                System.IO.FileStream fs = new System.IO.FileStream("save.sav", System.IO.FileMode.Create);
-                System.IO.BinaryWriter bw = new System.IO.BinaryWriter(fs);
-                System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                // System.IO.BinaryWriter bw = new System.IO.BinaryWriter(bw, System.IO.FileMode.OpenOrCreate);
-                serialize(bw);
-                world.serialize(bw);
-                fs.Close();
-//                bf.Serialize(fs, world);
+                try
+                {
+                    System.IO.FileStream fs = new System.IO.FileStream("save.sav", System.IO.FileMode.Create);
+                    System.IO.BinaryWriter bw = new System.IO.BinaryWriter(fs);
+                    System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                    game.serialize(bw);
+                    fs.Close();
+                }
+                catch (Exception e)
+                {
+                    Game1.logwriter.Write(e.ToString());
+                }
             }
 
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.L) && ks.IsKeyUp(Keys.L))
             {
-                System.IO.FileStream fs = new System.IO.FileStream("save.sav", System.IO.FileMode.Open);
-                System.IO.BinaryReader br = new System.IO.BinaryReader(fs);
-                System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                // System.IO.BinaryWriter bw = new System.IO.BinaryWriter(bw, System.IO.FileMode.OpenOrCreate);
-                unserialize(br);
-                world.unserialize(br);
-                fs.Close();
-                //                bf.Serialize(fs, world);
+                try
+                {
+                    System.IO.FileStream fs = new System.IO.FileStream("save.sav", System.IO.FileMode.Open);
+                    System.IO.BinaryReader br = new System.IO.BinaryReader(fs);
+                    System.Runtime.Serialization.Formatters.Binary.BinaryFormatter bf = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                    game.unserialize(br);
+                    fs.Close();
+                }
+                catch (Exception e)
+                {
+                    Game1.logwriter.Write(e.ToString());
+                }
             }
 
             oldKeys = ks;
@@ -338,7 +348,7 @@ namespace xnatest
             q.Z = br.ReadSingle();
         }
 
-        void serialize(System.IO.BinaryWriter bw)
+        public void serialize(System.IO.BinaryWriter bw)
         {
             serializeVector3(bw, pos);
             serializeVector3(bw, velo);
@@ -346,9 +356,11 @@ namespace xnatest
             bw.Write(yaw);
             serializeQuat(bw, rot);
             serializeQuat(bw, desiredRot);
+            bw.Write(bricks);
+            bw.Write((byte)moveMode);
         }
 
-        void unserialize(System.IO.BinaryReader br)
+        public void unserialize(System.IO.BinaryReader br)
         {
             unserializeVector3(br, ref pos);
             unserializeVector3(br, ref velo);
@@ -356,6 +368,8 @@ namespace xnatest
             yaw = br.ReadDouble();
             unserializeQuat(br, ref rot);
             unserializeQuat(br, ref desiredRot);
+            bricks = br.ReadInt32();
+            moveMode = (MoveMode)br.ReadByte();
         }
     }
 }

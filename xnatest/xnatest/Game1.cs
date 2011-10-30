@@ -144,7 +144,7 @@ namespace xnatest
             // TODO: Add your initialization logic here
 //            world.volume.Add(new CellIndex(0, 0, 0), new CellVolume(world));
 //            world.volume[new CellIndex(0, 0, 0)].initialize(new Vec3i(0,0,0));
-            player = new Player(world);
+            player = new Player(this, world);
 
             float tilt = MathHelper.ToRadians(0);  // 0 degree angle
             // Use the world matrix to tilt the cube along x and y axes.
@@ -290,7 +290,7 @@ namespace xnatest
 
         Vector2 spriteSpeed = new Vector2(100, 0);
 
-        static System.IO.StreamWriter logwriter;
+        public static System.IO.StreamWriter logwriter;
 
         /// <summary>
         /// Allows the game to run logic such as updating the world,
@@ -490,6 +490,39 @@ namespace xnatest
                         graphics.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 6 * 3, 2);
                 }
             }
+        }
+
+        /// <summary>
+        /// The magic number sequence to identify this file as a binary save file.
+        /// </summary>
+        /// <remarks>Taken from Subversion repository's UUID.</remarks>
+        static byte[] saveFileSignature = { 0x83, 0x1f, 0x50, 0xec, 0x5b, 0xf7, 0x40, 0x3a };
+
+        /// <summary>
+        /// The current version of this program's save file.
+        /// </summary>
+        static int saveFileVersion = 0;
+
+        public void serialize(System.IO.BinaryWriter bw)
+        {
+            bw.Write(saveFileSignature);
+            bw.Write(saveFileVersion);
+            player.serialize(bw);
+            world.serialize(bw);
+        }
+
+        public void unserialize(System.IO.BinaryReader br)
+        {
+            byte[] signature = br.ReadBytes(saveFileSignature.Length);
+            if (!signature.SequenceEqual(saveFileSignature))
+                throw new Exception("File signature mismatch");
+
+            int version = br.ReadInt32();
+            if(version != saveFileVersion)
+                throw new Exception(string.Format("File version mismatch, file = {0}, program = {1}", version, saveFileVersion));
+
+            player.unserialize(br);
+            world.unserialize(br);
         }
     }
 }
