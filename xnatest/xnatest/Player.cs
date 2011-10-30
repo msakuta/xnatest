@@ -25,6 +25,10 @@ namespace xnatest
         {
             game = thegame;
             world = theworld;
+            bricks = new Dictionary<Game1.Cell.Type,int>();
+            bricks[Game1.Cell.Type.Grass] = 0;
+            bricks[Game1.Cell.Type.Dirt] = 0;
+            bricks[Game1.Cell.Type.Gravel] = 0;
         }
 
         public Vector3 getPos() { return pos; }
@@ -71,7 +75,15 @@ namespace xnatest
 
         KeyboardState oldKeys;
 
-        public int bricks{get; set;}
+        /// <summary>
+        /// The current type of Cell being placed.
+        /// </summary>
+        public Game1.Cell.Type curtype = Game1.Cell.Type.Grass;
+
+        /// <summary>
+        /// The brick materials the Player has.
+        /// </summary>
+        public System.Collections.Generic.Dictionary<Game1.Cell.Type, int> bricks{get; set;}
 
         /// <summary>
         /// Half-size of the Player along X axis.
@@ -170,6 +182,10 @@ namespace xnatest
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.C) && ks.IsKeyUp(Keys.C))
                 moveMode = moveMode == MoveMode.Ghost ? MoveMode.Walk : MoveMode.Ghost;
 
+            // Toggle curtype
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.X) && ks.IsKeyUp(Keys.X))
+                curtype = curtype == Game1.Cell.Type.Grass ? Game1.Cell.Type.Dirt : curtype == Game1.Cell.Type.Dirt ? Game1.Cell.Type.Gravel : Game1.Cell.Type.Grass;
+
             // Dig the cell forward
             if (oldKeys != null && oldKeys.IsKeyDown(Keys.T) && ks.IsKeyUp(Keys.T))
             {
@@ -177,9 +193,10 @@ namespace xnatest
                 for (int i = 0; i < 8; i++)
                 {
                     Vec3i ci = Game1.real2ind(pos + dir * i / 2).index;
-                    if (world.isSolid(ci.X, ci.Y, ci.Z) && world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(Game1.Cell.Type.Air)))
+                    Game1.Cell c = world.cell(ci.X, ci.Y, ci.Z);
+                    if (c.isSolid() && world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(Game1.Cell.Type.Air)))
                     {
-                        bricks += 1;
+                        bricks[c.type] += 1;
                         break;
                     }
                 }
@@ -187,7 +204,7 @@ namespace xnatest
 
             // Place a solid cell next to another solid cell.
             // Feasible only if the player has a brick.
-            if (oldKeys != null && oldKeys.IsKeyDown(Keys.G) && ks.IsKeyUp(Keys.G) && 0 < bricks)
+            if (oldKeys != null && oldKeys.IsKeyDown(Keys.G) && ks.IsKeyUp(Keys.G) && 0 < bricks[curtype])
             {
                 Vector3 dir = Vector3.Transform(Vector3.Forward, rot);
                 for (int i = 0; i < 8; i++)
@@ -219,9 +236,9 @@ namespace xnatest
                     if (!supported)
                         continue;
 
-                    if (world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(Game1.Cell.Type.Grass)))
+                    if (world.setCell(ci.X, ci.Y, ci.Z, new Game1.Cell(curtype)))
                     {
-                        bricks -= 1;
+                        bricks[curtype] -= 1;
                         break;
                     }
                 }
@@ -356,7 +373,9 @@ namespace xnatest
             bw.Write(yaw);
             serializeQuat(bw, rot);
             serializeQuat(bw, desiredRot);
-            bw.Write(bricks);
+            bw.Write(bricks[Game1.Cell.Type.Grass]);
+            bw.Write(bricks[Game1.Cell.Type.Dirt]);
+            bw.Write(bricks[Game1.Cell.Type.Gravel]);
             bw.Write((byte)moveMode);
         }
 
@@ -368,7 +387,9 @@ namespace xnatest
             yaw = br.ReadDouble();
             unserializeQuat(br, ref rot);
             unserializeQuat(br, ref desiredRot);
-            bricks = br.ReadInt32();
+            bricks[Game1.Cell.Type.Grass] = br.ReadInt32();
+            bricks[Game1.Cell.Type.Dirt] = br.ReadInt32();
+            bricks[Game1.Cell.Type.Gravel] = br.ReadInt32();
             moveMode = (MoveMode)br.ReadByte();
         }
     }

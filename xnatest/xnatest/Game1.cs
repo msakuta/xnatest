@@ -259,6 +259,8 @@ namespace xnatest
         }
 
         Texture2D myTexture;
+        Texture2D dirtTexture;
+        Texture2D gravelTexture;
 
         Vector2 spritePosition = Vector2.Zero;
 
@@ -273,10 +275,11 @@ namespace xnatest
 
             // TODO: use this.Content to load your game content here
             myTexture = Content.Load<Texture2D>("grass");
+            dirtTexture = Content.Load<Texture2D>("dirt");
+            gravelTexture = Content.Load<Texture2D>("gravel");
             spriteFont = Content.Load<SpriteFont>("SpriteFont1");
 
             basicEffect.TextureEnabled = true;
-            basicEffect.Texture = myTexture;
         }
 
         /// <summary>
@@ -414,7 +417,12 @@ namespace xnatest
             spriteBatch.DrawString(spriteFont, string.Format("Draw time = {0}", gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f), new Vector2(0, y), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("pos = {0}", player.getPos()), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("CellVolumes = {0}", world.volume.Count), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
-            spriteBatch.DrawString(spriteFont, string.Format("Bricks = {0}", player.bricks), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
+            spriteBatch.DrawString(spriteFont, string.Format("Bricks = {0}, {1}, {2}, selected = {3}",
+                player.bricks[Cell.Type.Grass],
+                player.bricks[Cell.Type.Dirt],
+                player.bricks[Cell.Type.Gravel],
+                player.curtype),
+                new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("WorldSolids = {0}", world.solidcount), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("cellInvokes = {0}", CellVolume.cellInvokes), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
             spriteBatch.DrawString(spriteFont, string.Format("cellForeignInvokes = {0}", CellVolume.cellForeignInvokes), new Vector2(0, y += spriteFont.LineSpacing), Color.Aqua);
@@ -464,6 +472,12 @@ namespace xnatest
                 kv.Key.Y * CELLSIZE + iy - CELLSIZE / 2,
                 kv.Key.Z * CELLSIZE + iz - CELLSIZE / 2 + 1),
                 V3(0, 0, 1), Vector3.Up);
+            switch (kv.Value.cell(ix, iy, iz).type)
+            {
+                case Cell.Type.Grass: basicEffect.Texture = myTexture; break;
+                case Cell.Type.Dirt: basicEffect.Texture = dirtTexture; break;
+                case Cell.Type.Gravel: basicEffect.Texture = gravelTexture; break;
+            }
             foreach (EffectPass pass in basicEffect.CurrentTechnique.Passes)
             {
                 pass.Apply();
@@ -501,7 +515,7 @@ namespace xnatest
         /// <summary>
         /// The current version of this program's save file.
         /// </summary>
-        static int saveFileVersion = 0;
+        static int saveFileVersion = 1;
 
         public void serialize(System.IO.BinaryWriter bw)
         {

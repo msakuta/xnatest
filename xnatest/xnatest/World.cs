@@ -26,11 +26,13 @@ namespace xnatest
         /// </remarks>
         public struct Cell
         {
-            public enum Type { Air, Grass };
+            public enum Type { Air, Grass, Dirt, Gravel };
             public Cell(Type t) { mtype = t; adjacents = 0; }
             private Type mtype;
             public Type type { get { return mtype; } }
             public int adjacents;
+
+            public bool isSolid() { return mtype != Type.Air; }
 
             public void serialize(System.IO.BinaryWriter bw)
             {
@@ -210,10 +212,31 @@ namespace xnatest
                 _index = ci;
                 float[,] field = new float[CELLSIZE, CELLSIZE];
                 PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() { seed = 12321, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE }, new PerlinNoise.FieldAssign(field));
+
+                float[,] grassFactor = new float[CELLSIZE, CELLSIZE];
+                PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams()
+                    { seed = 54123, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE },
+                    new PerlinNoise.FieldAssign(grassFactor));
+                float[,] dirtFactor = new float[CELLSIZE, CELLSIZE];
+                PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() {
+                    seed = 112398, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE },
+                    new PerlinNoise.FieldAssign(dirtFactor));
+                float[,] gravelFactor = new float[CELLSIZE, CELLSIZE];
+                PerlinNoise.perlin_noise(new PerlinNoise.PerlinNoiseParams() {
+                    seed = 93532, cellsize = CELLSIZE, octaves = 7, xofs = ci.X * CELLSIZE, yofs = ci.Z * CELLSIZE },
+                    new PerlinNoise.FieldAssign(gravelFactor));
+
                 _solidcount = 0;
                 for (int ix = 0; ix < CELLSIZE; ix++) for (int iy = 0; iy < CELLSIZE; iy++) for (int iz = 0; iz < CELLSIZE; iz++)
                         {
-                            v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE * 2 < iy + ci.Y * CELLSIZE ? Cell.Type.Air : Cell.Type.Grass);
+                            Cell.Type ct;
+                            if (dirtFactor[ix, iz] < grassFactor[ix, iz] && gravelFactor[ix, iz] < grassFactor[ix, iz])
+                                ct = Cell.Type.Grass;
+                            else if (grassFactor[ix, iz] < dirtFactor[ix, iz] && grassFactor[ix, iz] < dirtFactor[ix, iz])
+                                ct = Cell.Type.Dirt;
+                            else
+                                ct = Cell.Type.Gravel;
+                            v[ix, iy, iz] = new Cell(field[ix, iz] * CELLSIZE * 2 < iy + ci.Y * CELLSIZE ? Cell.Type.Air : ct);
                             if (v[ix, iy, iz].type != Cell.Type.Air)
                                 _solidcount++;
                         }
